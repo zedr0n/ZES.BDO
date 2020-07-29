@@ -1,8 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDO.Core", "BDO.Core\BDO.Core.csproj", "{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BDO.Tests", "BDO.Tests\BDO.Tests.csproj", "{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+		DebugLocal|Any CPU = DebugLocal|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.DebugLocal|Any CPU.ActiveCfg = DebugLocal|Any CPU
+		{A6C1CD1A-9FD7-4CA4-8FFB-19C664744246}.DebugLocal|Any CPU.Build.0 = DebugLocal|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.DebugLocal|Any CPU.ActiveCfg = DebugLocal|Any CPU
+		{AC188AF8-75CC-4F78-92D3-F27F4B7E9FBF}.DebugLocal|Any CPU.Build.0 = DebugLocal|Any CPU
 	EndGlobalSection
 EndGlobal

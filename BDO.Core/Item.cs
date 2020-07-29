@@ -9,12 +9,20 @@ namespace BDO.Core
         public Item()
         {
             Register<ItemAdded>(e => Id = e.Name);
+            Register<ItemInfoUpdated>(e => ItemId = e.ItemId);
         }
         
         public Item(string name) 
             : this()
         {
             When(new ItemAdded(name));
+        }
+
+        public int ItemId { get; set; }
+
+        public void UpdateInfo(int id)
+        {
+            When(new ItemInfoUpdated(id));
         }
     }
 }

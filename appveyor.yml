@@ -1,0 +1,31 @@
+version: 1.0.{build}
+image: Visual Studio 2019
+
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  
+before_build:
+  - cmd: dotnet restore --verbosity m
+build:
+  project: ZES.BDO.sln
+  verbosity: minimal
+  publish_nuget: true             # package projects with .nuspec files and push to artifacts
+after_build:
+  #- cmd: pushd ZES && dotnet pack --no-build -o .. && popd
+test_script:
+  #- cmd: dotnet test --filter CoinTests Chronos.Tests\Chronos.Tests.csproj
+on_failure:
+  # Cache node modules, and refresh if package.json changes
+cache:
+  #- node_modules -> package.json
+artifacts:
+  #- path: SqlTests.zip
+  #  name: SqlTests
+nuget:
+  project_feed: true
+install:
+ - nuget sources add -Name Account -Source https://ci.appveyor.com/nuget/zinnos -UserName %nuget_user% -Password %nuget_password%
+ - nuget sources add -Name MyGet -Source https://www.myget.org/F/zinnos-public/api/v3/index.json

@@ -41,7 +41,21 @@ namespace BDO.Tests
             await await bus.CommandAsync(new AddItem(name));
             await await bus.CommandAsync(new UpdateItemInfo(name, 44195));
 
-            await bus.QueryUntil(new ItemInfoQuery(name), itemInfo => itemInfo.ItemId == 44915);
+            var item = await bus.QueryUntil(new ItemInfoQuery(name), itemInfo => itemInfo.ItemId == 44915);
+            Assert.Equal(44195, item.ItemId); 
+        }
+
+        [Fact]
+        public async void CanGetItemIdFromNet()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            
+            var name = "Memory Fragment";
+            await await bus.CommandAsync(new AddItem(name));
+            
+            var item = await bus.QueryUntil(new ItemInfoQuery(name), itemInfo => itemInfo.ItemId == 44195);
+            Assert.Equal(44195, item.ItemId);
         }
     }
 }

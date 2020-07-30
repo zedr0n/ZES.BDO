@@ -34,7 +34,7 @@ namespace BDO.Tests
         [Fact]
         public async void CanSetItemId()
         {
-            var container = CreateContainer();
+            var container = CreateContainer(useSagas: false);
             var bus = container.GetInstance<IBus>();
             
             var name = "Memory Fragment";

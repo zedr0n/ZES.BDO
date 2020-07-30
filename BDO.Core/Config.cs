@@ -12,5 +12,16 @@ namespace BDO.Core
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
         }
+
+        public static void RegisterWithoutSagas(Container c)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            c.RegisterEvents(assembly);
+            c.RegisterAlerts(assembly);
+            c.RegisterCommands(assembly);
+            c.RegisterQueries(assembly);
+            c.RegisterProjections(assembly);
+            c.RegisterAggregates(assembly);
+        }
     }
 }

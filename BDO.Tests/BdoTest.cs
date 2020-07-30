@@ -14,12 +14,14 @@ namespace BDO.Tests
         {
         }
         
-        protected override Container CreateContainer(List<Action<Container>> registrations = null)
+        protected Container CreateContainer(List<Action<Container>> registrations = null, bool useSagas = true)
         {
-            var regs = new List<Action<Container>>
-            {
-                Config.RegisterAll,
-            };
+            var regs = new List<Action<Container>>();
+            if (useSagas)
+                regs.Add(Config.RegisterAll);
+            else
+                regs.Add(Config.RegisterWithoutSagas);
+            
             if (registrations != null)
                 regs.AddRange(registrations);
 

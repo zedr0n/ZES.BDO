@@ -5,8 +5,17 @@ function setIntervalImmediately(func, interval) {
     return setInterval(func, interval);
 }
 
-export function graphQlQuery(server : string, 
-                                     query : string, 
+
+export function Query(query : string,
+                      parseFn: ( data : any ) => string,
+                      period : number,
+                      invocation : CustomFunctions.StreamingInvocation<string>) : void {
+    graphQlQuery(window.server, query, parseFn, period, invocation);
+    
+}
+
+function graphQlQuery(server : string,
+                          query : string, 
                                      parseFn: ( data : any ) => string,
                                      period : number,
                                      invocation : CustomFunctions.StreamingInvocation<string>) : void {

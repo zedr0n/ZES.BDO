@@ -4,7 +4,7 @@ import { AppContainer } from 'react-hot-loader';
 import { initializeIcons } from 'office-ui-fabric-react/lib/Icons';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import { activeBranch, getStarCount } from '../functions/functions'
+import '../functions/functions.ts'
 
 initializeIcons();
 
@@ -25,9 +25,6 @@ const render = (Component) => {
 Office.initialize = () => {
     isOfficeInitialized = true;
     render(App);
-    
-    CustomFunctions.associate('ACTIVEBRANCH', activeBranch);
-    CustomFunctions.associate('GETSTARCOUNT', getStarCount);
 };
 
 /* Initial render showing a progress bar */

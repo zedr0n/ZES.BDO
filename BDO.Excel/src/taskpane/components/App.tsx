@@ -6,6 +6,12 @@ import Progress from './Progress';
 import { request } from 'graphql-request';
 import RangeInput from "./RangeInput";
 
+declare global {
+  interface Window { server: string; }
+}
+
+window.server = "https://localhost:5001";
+
 export interface AppProps {
   title: string;
   isOfficeInitialized: boolean;
@@ -25,8 +31,6 @@ export default class App extends React.Component<AppProps, AppState> {
     };
   }
   
-  server : string = "https://localhost:5001";
-
   componentDidMount() {
     this.setState({
       listItems: [ ],
@@ -85,7 +89,7 @@ export default class App extends React.Component<AppProps, AppState> {
   activeBranchEx = async() =>
   {
     const query = "query { activeBranch }";
-    let data : any = await request(this.server, query)
+    let data : any = await request(window.server, query)
     this.setState( { branch : data.activeBranch.toString() });
   }
   

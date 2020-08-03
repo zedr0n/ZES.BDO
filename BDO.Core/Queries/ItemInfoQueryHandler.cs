@@ -1,11 +1,21 @@
 using BDO.Core.Events;
-using ZES.Infrastructure.Projections;
+using ZES.Interfaces;
+using ZES.Interfaces.Domain;
 
 namespace BDO.Core.Queries
 {
-    public class ItemInfoQueryHandler : ProjectionHandlerBase<ItemInfo, ItemInfoUpdated>
+    public class ItemInfoQueryHandler : IProjectionHandler<ItemInfo, ItemInfoUpdated>, IProjectionHandler<ItemInfo, ItemAdded>
     {
-        public override ItemInfo Handle(ItemInfoUpdated e, ItemInfo state)
+        public ItemInfo Handle(IEvent e, ItemInfo state) => Handle((dynamic)e, state);
+
+        public ItemInfo Handle(ItemAdded e, ItemInfo state)
+        {
+            state.Name = e.Name;
+            state.Grade = e.Grade;
+            return state;
+        }
+
+        public ItemInfo Handle(ItemInfoUpdated e, ItemInfo state)
         {
             state.ItemId = e.ItemId;
             return state;

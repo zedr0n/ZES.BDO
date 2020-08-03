@@ -20,10 +20,16 @@
        get; 
        set;
     }  
-    public ItemInfo(string name, int itemId) 
+    public int Grade
+    {
+       get; 
+       set;
+    }  
+    public ItemInfo(string name, int itemId, int grade) 
     {
       Name = name; 
-      ItemId = itemId;
+      ItemId = itemId; 
+      Grade = grade;
     }
   }
 }

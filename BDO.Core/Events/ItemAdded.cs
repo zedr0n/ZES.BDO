@@ -15,9 +15,15 @@
        get; 
        set;
     }  
-    public ItemAdded(string name) 
+    public int Grade
     {
-      Name = name;
+       get; 
+       set;
+    }  
+    public ItemAdded(string name, int grade) 
+    {
+      Name = name; 
+      Grade = grade;
     }
   }
 }

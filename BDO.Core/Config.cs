@@ -1,6 +1,11 @@
 using System.Reflection;
+using BDO.Core.Commands;
+using BDO.Core.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
+using ZES.Infrastructure.GraphQl;
+using ZES.Interfaces;
+using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
 namespace BDO.Core
@@ -15,13 +20,27 @@ namespace BDO.Core
 
         public static void RegisterWithoutSagas(Container c)
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            c.RegisterEvents(assembly);
-            c.RegisterAlerts(assembly);
-            c.RegisterCommands(assembly);
-            c.RegisterQueries(assembly);
-            c.RegisterProjections(assembly);
-            c.RegisterAggregates(assembly);
+            c.RegisterAll(Assembly.GetExecutingAssembly(), false);
+        }
+
+        public class Query : GraphQlQuery
+        {
+            public Query(IBus bus)
+                : base(bus)
+            {
+            }
+
+            public ItemInfo ItemInfo(string name, int grade) => Resolve(new ItemInfoQuery(name, 0));
+        }
+
+        public class Mutation : GraphQlMutation
+        {
+            public Mutation(IBus bus, ILog log) 
+                : base(bus, log)
+            {
+            }
+
+            public bool AddItem(string name, int grade) => Resolve(new AddItem(name, grade));
         }
     }
 }

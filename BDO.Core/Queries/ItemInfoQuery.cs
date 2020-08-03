@@ -12,12 +12,18 @@
        get; 
        set;
     }  
+    public int Grade
+    {
+       get; 
+       set;
+    }  
     public ItemInfoQuery() 
     {
     }  
-    public ItemInfoQuery(string name) : base(name) 
+    public ItemInfoQuery(string name, int grade) : base($"{name}_{grade}") 
     {
-      Name = name;
+      Name = name; 
+      Grade = grade;
     }
   }
 }

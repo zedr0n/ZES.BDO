@@ -15,7 +15,7 @@
        get; 
        set;
     }  
-    public UpdateItemInfo(string target, int itemId) : base(target) 
+    public UpdateItemInfo(string name, int grade, int itemId) : base($"{name}_{grade}") 
     {
       ItemId = itemId;
     }

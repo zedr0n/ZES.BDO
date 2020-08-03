@@ -8,14 +8,14 @@ namespace BDO.Core
     {
         public Item()
         {
-            Register<ItemAdded>(e => Id = e.Name);
+            Register<ItemAdded>(e => Id = $"{e.Name}_{e.Grade}");
             Register<ItemInfoUpdated>(e => ItemId = e.ItemId);
         }
         
-        public Item(string name) 
+        public Item(string name, int grade) 
             : this()
         {
-            When(new ItemAdded(name));
+            When(new ItemAdded(name, grade));
         }
 
         public int ItemId { get; set; }

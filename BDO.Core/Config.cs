@@ -30,7 +30,7 @@ namespace BDO.Core
             {
             }
 
-            public ItemInfo ItemInfo(string name, int grade) => Resolve(new ItemInfoQuery(name, 0));
+            public ItemInfo ItemInfo(string name, int grade) => Resolve(new ItemInfoQuery(name, grade));
         }
 
         public class Mutation : GraphQlMutation

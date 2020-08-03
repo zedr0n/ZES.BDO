@@ -7,10 +7,14 @@ import { request } from 'graphql-request';
 import RangeInput from "./RangeInput";
 
 declare global {
-  interface Window { server: string; }
+  interface Window { 
+    server: string; 
+    period: number;
+  }
 }
 
 window.server = "https://localhost:5001";
+window.period = 1000;
 
 export interface AppProps {
   title: string;

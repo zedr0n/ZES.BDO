@@ -15,9 +15,15 @@
        get; 
        set;
     }  
-    public ItemInfoUpdated(int itemId) 
+    public int Grade
     {
-      ItemId = itemId;
+       get; 
+       set;
+    }  
+    public ItemInfoUpdated(int itemId, int grade) 
+    {
+      ItemId = itemId; 
+      Grade = grade;
     }
   }
 }

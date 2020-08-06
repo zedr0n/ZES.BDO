@@ -14,8 +14,9 @@ export async function SingleQuery(query : string,
 
 export function Query(query : string,
                       parseFn: ( data : any ) => string,
-                      invocation : CustomFunctions.StreamingInvocation<string>) : void {
-    graphQlQuery(window.server, query, parseFn, window.period, invocation);
+                      invocation : CustomFunctions.StreamingInvocation<string>,
+                      continueFn? : ( result : string ) => boolean) : void {
+    graphQlQuery(window.server, query, parseFn, window.period, invocation, continueFn);
 }
 
 export async function Mutation(mutation : string)
@@ -51,13 +52,20 @@ function graphQlQuery(server : string,
                       query : string, 
                                      parseFn: ( data : any ) => string,
                                      period : number,
-                                     invocation : CustomFunctions.StreamingInvocation<string>) : void {
+                                     invocation : CustomFunctions.StreamingInvocation<string>,
+                                     continueFn? : ( result : string ) => boolean) : void {
+   if (continueFn == undefined)
+       continueFn = result => true;
     
     const timer = setIntervalImmediately(() => {
         invocation.setResult("Querying...");
         try {
-            request(server, query).then(data =>
-                invocation.setResult(parseFn(data)))
+            request(server, query).then(data => {
+                let result = parseFn(data);
+                invocation.setResult(result);
+                if (!continueFn(result))
+                    clearInterval(timer);
+                })
                 .catch(r => invocation.setResult(r.message))
         }
         catch(error) {

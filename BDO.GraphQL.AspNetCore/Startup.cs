@@ -16,7 +16,7 @@ namespace BDO.GraphQL.AspNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.UseGraphQl(new[] { typeof(Config) });
+            services.UseGraphQl(new[] { typeof(Config) }, useRemoteStore: true);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

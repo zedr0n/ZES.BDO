@@ -12,12 +12,16 @@
     }  
     public int ItemId
     {
-       get; 
-       set;
+       get;
     }  
-    public UpdateItemInfo(string name, int grade, int itemId) : base($"{name}_{grade}") 
+    public int Grade
     {
-      ItemId = itemId;
+       get;
+    }  
+    public UpdateItemInfo(string target, int itemId, int grade) : base(target) 
+    {
+      ItemId = itemId; 
+      Grade = grade;
     }
   }
 }

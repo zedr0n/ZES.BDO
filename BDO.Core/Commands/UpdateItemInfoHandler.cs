@@ -12,7 +12,7 @@
     }  
     protected override void Act (Item item, UpdateItemInfo command)
     {
-      item.UpdateInfo(command.ItemId);
+      item.UpdateInfo(command.ItemId, command.Grade);
     }
   }
 }

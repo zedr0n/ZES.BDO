@@ -24,10 +24,9 @@ namespace BDO.Tests
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
 
             var name = "Memory Fragment";
-            var grade = 0;
 
-            await await bus.CommandAsync(new AddItem(name, grade));
-            var item = await repository.Find<Item>(GetTarget(name, grade));
+            await await bus.CommandAsync(new AddItem(name));
+            var item = await repository.Find<Item>(name);
             
             Assert.NotNull(item);
         }
@@ -39,11 +38,10 @@ namespace BDO.Tests
             var bus = container.GetInstance<IBus>();
             
             var name = "Memory Fragment";
-            var grade = 0;
-            await await bus.CommandAsync(new AddItem(name, 0));
-            await await bus.CommandAsync(new UpdateItemInfo(name, grade, 44195));
+            await await bus.CommandAsync(new AddItem(name));
+            await await bus.CommandAsync(new UpdateItemInfo(name, 44195, 0));
 
-            var item = await bus.QueryUntil(new ItemInfoQuery(name, grade), itemInfo => itemInfo.ItemId == 44915);
+            var item = await bus.QueryUntil(new ItemInfoQuery(name), itemInfo => itemInfo.ItemId == 44915);
             Assert.Equal(44195, item.ItemId); 
         }
 
@@ -54,14 +52,11 @@ namespace BDO.Tests
             var bus = container.GetInstance<IBus>();
             
             var name = "Memory Fragment";
-            var grade = 0;
-            await await bus.CommandAsync(new AddItem(name, grade));
+            await await bus.CommandAsync(new AddItem(name));
             
-            var item = await bus.QueryUntil(new ItemInfoQuery(name, grade), itemInfo => itemInfo.ItemId == 44195);
+            var item = await bus.QueryUntil(new ItemInfoQuery(name), itemInfo => itemInfo.ItemId == 44195);
             Assert.Equal(44195, item.ItemId);
             Assert.Equal(0, item.Grade);
         }
-        
-        private string GetTarget(string name, int grade) => $"{name}_{grade}";
     }
 }

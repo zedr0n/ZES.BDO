@@ -11,7 +11,6 @@ namespace BDO.Core.Queries
         public ItemInfo Handle(ItemAdded e, ItemInfo state)
         {
             state.Name = e.Name;
-            state.Grade = e.Grade;
             return state;
         }
 

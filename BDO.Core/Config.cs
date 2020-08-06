@@ -30,7 +30,7 @@ namespace BDO.Core
             {
             }
 
-            public ItemInfo ItemInfo(string name, int grade) => Resolve(new ItemInfoQuery(name, grade));
+            public ItemInfo ItemInfo(string name) => Resolve(new ItemInfoQuery(name));
         }
 
         public class Mutation : GraphQlMutation
@@ -40,7 +40,7 @@ namespace BDO.Core
             {
             }
 
-            public bool AddItem(string name, int grade) => Resolve(new AddItem(name, grade));
+            public bool AddItem(string name) => Resolve(new AddItem(name));
         }
     }
 }

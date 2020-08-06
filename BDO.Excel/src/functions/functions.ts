@@ -12,15 +12,47 @@ export function activeBranch(invocation : CustomFunctions.StreamingInvocation<st
 
 /**
  * @customfunction
- * @param {string} name Item name
- * @param {number} grade Item grade. If omitted, grade = 0
+ * @param name Item name
+ * @param invocation Custom function handler
  */
-export async function itemId(name : string, grade? : number) : Promise<any> {
-  if (grade == null)
-    grade = 0;
+export function itemId(name : string, invocation : CustomFunctions.StreamingInvocation<string>) : void {
+
+  const query = `query {
+    itemInfo(name : "${name}") { itemId } 
+  }`;
+
+  SingleQuery(query, data => data.itemInfo.itemId.toString())
+      .then(res => {
+        let id = 0;  
+        try {
+            id = Number(res);
+        }
+        catch (e) {
+           invocation.setResult(e); 
+        }
+        
+        if (id == 0)
+        {
+          const mutation = `mutation {
+            addItem( name : "${name}" )
+          }`;
+          
+          Mutation(mutation).catch(e => invocation.setResult(e));
+        }
+        
+        Query(query, data => data.itemInfo.itemId.toString(), invocation, result => Number(result) == 0);
+      })
+      .catch(e => invocation.setResult(e));
+}
+
+/**
+ * @customfunction
+ * @param {string} name Item name
+ */
+export async function itemIdSingle(name : string) : Promise<any> {
   
   const query = `query {
-    itemInfo(name : "${name}", grade : ${grade}) { itemId } 
+    itemInfo(name : "${name}") { itemId } 
   }`;
 
   let id = 0;
@@ -35,7 +67,7 @@ export async function itemId(name : string, grade? : number) : Promise<any> {
   if (id == 0)
   {
     const mutation = `mutation {
-        addItem( name : "${name}", grade : ${grade} )
+        addItem( name : "${name}" )
       }`;
     await Mutation(mutation);
   }

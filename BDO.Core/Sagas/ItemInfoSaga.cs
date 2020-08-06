@@ -18,8 +18,8 @@ namespace BDO.Core.Sagas
         private int _grade;
         public ItemInfoSaga()
         {
-            Register<ItemAdded>( e => $"{e.Name}_{e.Grade}", Trigger.ItemAdded, e => _name = e.Name);
-            Register<ItemInfoHandler.ItemInfoReceived>( e => $"{e.Name}_{e.Grade}", Trigger.ItemInfoReceived, e =>
+            Register<ItemAdded>( e => $"{e.Name}", Trigger.ItemAdded, e => _name = e.Name);
+            Register<ItemInfoHandler.ItemInfoReceived>( e => $"{e.Name}", Trigger.ItemInfoReceived, e =>
             {
                 _itemId = e.ItemId;
                 _grade = e.Grade;
@@ -55,7 +55,7 @@ namespace BDO.Core.Sagas
                 .Permit(Trigger.ItemInfoReceived, State.Complete);
 
             StateMachine.Configure(State.Complete)
-                .OnEntry(() => SendCommand(new UpdateItemInfo(_name, _grade, _itemId)));
+                .OnEntry(() => SendCommand(new UpdateItemInfo(_name, _itemId, _grade)));
         }
         
         public class ItemInfoHandler : IJsonHandler<ItemInfoHandler.SearchResults>

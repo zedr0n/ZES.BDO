@@ -62,7 +62,7 @@ namespace BDO.Tests
 
             var itemId = 44915.ToString();
 
-            var total = 3000;
+            var total = 100;
             var nBatches = 2;
 
             var stats = await bus.QueryAsync(new StatsQuery());
@@ -98,7 +98,7 @@ namespace BDO.Tests
 
             var expectation = totalSum / nBatches;
             log.Info($"Expected number of attempts total : {expectation}");
-            Assert.True(Math.Abs(expectation - 2.13) < 0.05);
+            Assert.True(Math.Abs(expectation - 2.13) < 1);
         }
     }
 }

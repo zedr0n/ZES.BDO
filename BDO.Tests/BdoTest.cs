@@ -18,10 +18,22 @@ namespace BDO.Tests
         {
             var regs = new List<Action<Container>>();
             if (useSagas)
-                regs.Add(Config.RegisterAll);
+            {
+                regs.Add(c =>
+                {
+                    Config.RegisterAll(c);
+                    Enhancement.Config.RegisterAll(c);
+                });
+            }
             else
-                regs.Add(Config.RegisterWithoutSagas);
-            
+            {
+                regs.Add(c =>
+                {
+                    Config.RegisterWithoutSagas(c);
+                    Enhancement.Config.RegisterWithoutSagas(c);
+                });
+            }
+
             if (registrations != null)
                 regs.AddRange(registrations);
 

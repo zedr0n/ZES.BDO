@@ -62,8 +62,8 @@ namespace BDO.Tests
 
             var itemId = 44915.ToString();
 
-            var total = 10000;
-            var nBatches = 5;
+            var total = 3000;
+            var nBatches = 2;
 
             var stats = await bus.QueryAsync(new StatsQuery());
             var totalSum = 0.0;
@@ -93,7 +93,7 @@ namespace BDO.Tests
                 totalSum += res;
                 
                 await manager.Branch(BranchManager.Master);
-                // await manager.DeleteBranch($"test{iBatch}");
+                await manager.DeleteBranch($"test{iBatch}");
             }
 
             var expectation = totalSum / nBatches;

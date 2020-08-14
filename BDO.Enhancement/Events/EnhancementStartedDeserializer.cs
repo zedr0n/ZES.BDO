@@ -12,6 +12,15 @@ namespace BDO.Enhancement.Events
                 case JsonToken.String when currentProperty == nameof(EnhancementStarted.EnchancementId):
                     e.EnchancementId = (string)reader.Value;
                     break;
+                case JsonToken.String when currentProperty == nameof(EnhancementStarted.Item):
+                    e.Item = (string)reader.Value;
+                    break;
+                case JsonToken.Integer when currentProperty == nameof(EnhancementStarted.Grade):
+                    e.Grade = (int)(long)reader.Value;
+                    break;
+                case JsonToken.Integer when currentProperty == nameof(EnhancementStarted.Failstack):
+                    e.Failstack = (int)(long)reader.Value;
+                    break;
             }
         }
 

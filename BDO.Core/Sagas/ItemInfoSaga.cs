@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BDO.Core.Commands;
@@ -19,7 +20,11 @@ namespace BDO.Core.Sagas
         public ItemInfoSaga()
         {
             Register<ItemAdded>( e => $"{e.Name}", Trigger.ItemAdded, e => _name = e.Name);
-            Register<ItemInfoHandler.ItemInfoReceived>( e => $"{e.Name}", Trigger.ItemInfoReceived, e =>
+            RegisterIf<ItemInfoHandler.ItemInfoReceived>( 
+                e => e.RequestorId, 
+                Trigger.ItemInfoReceived, 
+                e => e.Name.Equals(_name, StringComparison.CurrentCultureIgnoreCase),
+                e =>
             {
                 _itemId = e.ItemId;
                 _grade = e.Grade;
@@ -50,7 +55,7 @@ namespace BDO.Core.Sagas
                 .OnEntry(() =>
                 {
                     var url = $"https://bddatabase.net/ac.php?l=us&term={_name.Replace(' '.ToString(), "%20")}";
-                    SendCommand(new RequestJson<ItemInfoHandler.SearchResults>(url));
+                    SendCommand(new RequestJson<ItemInfoHandler.SearchResults>(Id, url));
                 })
                 .Permit(Trigger.ItemInfoReceived, State.Complete);
 
@@ -64,7 +69,7 @@ namespace BDO.Core.Sagas
             {
                 var events = response     
                     .Where(r => r.Object_Type == "Item")
-                    .Select(r => new ItemInfoReceived(int.Parse(r.Value), r.Name, int.Parse(r.Grade)));
+                    .Select(r => new ItemInfoReceived(response.RequestorId, int.Parse(r.Value), r.Name, int.Parse(r.Grade)));
                 return events;
             }
             
@@ -81,13 +86,15 @@ namespace BDO.Core.Sagas
 
             public class ItemInfoReceived : Event
             {
-                public ItemInfoReceived(int itemId, string name, int grade)
+                public ItemInfoReceived(string requestorId, int itemId, string name, int grade)
                 {
+                    RequestorId = requestorId;
                     ItemId = itemId;
                     Name = name;
                     Grade = grade;
                 }
 
+                public string RequestorId { get; }
                 public int ItemId { get; }
                 public string Name { get; }
                 public int Grade { get; }

@@ -10,8 +10,23 @@
     public StartEnhancement() 
     {
     }  
-    public StartEnhancement(string target) : base(target) 
+    public string Item
     {
+       get;
+    }  
+    public int Grade
+    {
+       get;
+    }  
+    public int Failstack
+    {
+       get;
+    }  
+    public StartEnhancement(string target, string item, int grade, int failstack) : base(target) 
+    {
+      Item = item; 
+      Grade = grade; 
+      Failstack = failstack;
     }
   }
 }

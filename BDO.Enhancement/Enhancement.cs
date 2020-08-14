@@ -11,91 +11,58 @@
     {
       Register<BDO.Enhancement.Events.EnhancementStarted>(ApplyEvent); 
       Register<BDO.Enhancement.Events.EnhancementSucceeded>(ApplyEvent); 
-      Register<BDO.Enhancement.Events.EnhancementFailed>(ApplyEvent); 
-      Register<BDO.Enhancement.Events.EnhancementInfoSet>(ApplyEvent);
+      Register<BDO.Enhancement.Events.EnhancementFailed>(ApplyEvent);
     }  
-    public Enhancement(string enchancementId) : this() 
+    public Enhancement(string enchancementId, string item, int grade, int failstack) : this() 
     {
-      When(new BDO.Enhancement.Events.EnhancementStarted(enchancementId));
+      When(new BDO.Enhancement.Events.EnhancementStarted(enchancementId, item, grade, failstack));
     }  
     public string EnchancementId
     {
        get; 
        set;
     }  
-    public string ItemId
+    public string Item
     {
        get; 
        set;
     }  
-    public string EnhancementItemId
+    public int Grade
     {
        get; 
        set;
     }  
-    public int EnhancementItemAmount
+    public int Failstack
     {
        get; 
        set;
     }  
-    public int InitialFilestack
+    public int NumberOfFailures
     {
        get; 
        set;
     }  
-    public double BaseChance
+    public void Success (int numberOfFailures)
     {
-       get; 
-       set;
-    }  
-    public double BaseIncrease
-    {
-       get; 
-       set;
-    }  
-    public double SoftCap
-    {
-       get; 
-       set;
-    }  
-    public double SoftCapIncrease
-    {
-       get; 
-       set;
-    }  
-    public void Success ()
-    {
-      When(new BDO.Enhancement.Events.EnhancementSucceeded(Id));
+      When(new BDO.Enhancement.Events.EnhancementSucceeded(Id, numberOfFailures));
     }  
     public void Failure ()
     {
       When(new BDO.Enhancement.Events.EnhancementFailed(Id));
     }  
-    public void SetInfo (string enchancementId, string itemId, string enhancementItemId, int enhancementItemAmount, int initialFilestack, double baseChance, double baseIncrease, double softCap, double softCapIncrease)
-    {
-      When(new BDO.Enhancement.Events.EnhancementInfoSet(enchancementId, itemId, enhancementItemId, enhancementItemAmount, initialFilestack, baseChance, baseIncrease, softCap, softCapIncrease));
-    }  
     private void ApplyEvent (BDO.Enhancement.Events.EnhancementStarted e)
     {
-      Id = e.EnchancementId;
+      Id = e.EnchancementId; 
+      Item = e.Item; 
+      Grade = e.Grade; 
+      Failstack = e.Failstack;
     }  
     private void ApplyEvent (BDO.Enhancement.Events.EnhancementSucceeded e)
     {
+      NumberOfFailures = e.NumberOfFailures;
     }  
     private void ApplyEvent (BDO.Enhancement.Events.EnhancementFailed e)
     {
-    }  
-    private void ApplyEvent (BDO.Enhancement.Events.EnhancementInfoSet e)
-    {
-      EnchancementId = e.EnchancementId; 
-      ItemId = e.ItemId; 
-      EnhancementItemId = e.EnhancementItemId; 
-      EnhancementItemAmount = e.EnhancementItemAmount; 
-      InitialFilestack = e.InitialFilestack; 
-      BaseChance = e.BaseChance; 
-      BaseIncrease = e.BaseIncrease; 
-      SoftCap = e.SoftCap; 
-      SoftCapIncrease = e.SoftCapIncrease;
     }
   }
 }

@@ -1,11 +1,14 @@
 using System;
+using System.Linq;
 using BDO.Enhancement.Commands;
 using BDO.Enhancement.Events;
+using BDO.Enhancement.Static;
 using Stateless;
 using ZES.Infrastructure.Domain;
 
 namespace BDO.Enhancement.Sagas
 {
+    /// <inheritdoc />
     public class EnhancementSaga : StatelessSaga<EnhancementSaga.State, EnhancementSaga.Trigger>
     {
         private readonly Random _random;
@@ -19,53 +22,50 @@ namespace BDO.Enhancement.Sagas
 
         private double _increase;
         private double _softCapIncrease;
-        
+        private int _numberOfFailures;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EnhancementSaga"/> class.
+        /// </summary>
         public EnhancementSaga()
         {
-            Register<EnhancementStarted>(e => e.EnchancementId, Trigger.STARTED);
-            Register<EnhancementInfoSet>(e => e.EnchancementId, Trigger.ATTEMPT, SetInfo);
-            Register<EnhancementFailed>(e => e.Id, Trigger.ATTEMPT, e => _failStack++);
-            Register<EnhancementSucceeded>(e => e.Id, Trigger.SUCCESS);
+            RegisterIf<EnhancementStarted>(e => e.EnchancementId, Trigger.Started, e => Data.EnhancementInfos.Any(i => i.IsFor(e.Item, e.Grade)), Initialise);
+            Register<EnhancementFailed>(e => e.Id, Trigger.Attempt, e =>
+            {
+                _failStack++;
+                _numberOfFailures++;
+            });
+            Register<EnhancementSucceeded>(e => e.Id, Trigger.Success);
             
             _random = new Random();
         }
         
         public enum State
         {
-            OPEN,
-            ENHANCING,
-            COMPLETE
+            Open,
+            Enhancing,
+            Complete,
         }
 
         public enum Trigger
         {
-            STARTED,
-            ATTEMPT,
-            SUCCESS
+            Started,
+            Attempt,
+            Success,
         }
-
-        private void SetInfo(EnhancementInfoSet e)
-        {
-            _base = e.BaseChance;
-            _increase = e.BaseIncrease;
-            _softCap = e.SoftCap;
-            _softCapIncrease = e.SoftCapIncrease;
-            _failStack = e.InitialFilestack;
-            _success = GetInitial(_failStack);
-        }
-
+        
         protected override void ConfigureStateMachine()
         {   
-            StateMachine = new StateMachine<State, Trigger>(State.OPEN);
+            StateMachine = new StateMachine<State, Trigger>(State.Open);
 
-            StateMachine.Configure(State.OPEN).Permit(Trigger.ATTEMPT, State.ENHANCING);
+            StateMachine.Configure(State.Open).Permit(Trigger.Started, State.Enhancing);
 
-            StateMachine.Configure(State.ENHANCING)
+            StateMachine.Configure(State.Enhancing)
                 .OnEntry(() =>
                 {
                     var success = _random.NextDouble() < _success;
                     if (success)
-                        SendCommand(new SucceedEnhancement(Id));
+                        SendCommand(new SucceedEnhancement(Id, _numberOfFailures));
                     else
                         SendCommand(new FailEnhancement(Id));
 
@@ -73,9 +73,23 @@ namespace BDO.Enhancement.Sagas
                     if (_success > _hardCap)
                         _success = _hardCap;
                 })
-                .PermitReentry(Trigger.ATTEMPT);
+                .PermitReentry(Trigger.Attempt);
 
-            StateMachine.Configure(State.ENHANCING).Permit(Trigger.SUCCESS, State.COMPLETE);
+            StateMachine.Configure(State.Enhancing).Permit(Trigger.Success, State.Complete);
+        }
+
+        private void Initialise(EnhancementStarted e)
+        {
+            var info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(e.Item, e.Grade));
+            if (info == null)
+                return;
+            
+            _base = info.BaseChance;
+            _increase = info.BaseIncrease;
+            _softCap = info.SoftCap;
+            _softCapIncrease = info.SoftCapIncrease;
+            _failStack = e.Failstack;
+            _success = GetInitial(_failStack);
         }
 
         private double GetIncrease(double current)

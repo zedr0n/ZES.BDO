@@ -15,9 +15,27 @@
        get; 
        set;
     }  
-    public EnhancementStarted(string enchancementId) 
+    public string Item
     {
-      EnchancementId = enchancementId;
+       get; 
+       set;
+    }  
+    public int Grade
+    {
+       get; 
+       set;
+    }  
+    public int Failstack
+    {
+       get; 
+       set;
+    }  
+    public EnhancementStarted(string enchancementId, string item, int grade, int failstack) 
+    {
+      EnchancementId = enchancementId; 
+      Item = item; 
+      Grade = grade; 
+      Failstack = failstack;
     }
   }
 }

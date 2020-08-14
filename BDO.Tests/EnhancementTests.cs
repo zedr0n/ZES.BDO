@@ -13,6 +13,8 @@ using ZES.Interfaces.Pipes;
 using ZES.Utils;
 using ILog = ZES.Interfaces.ILog;
 
+#pragma warning disable SA1600
+
 namespace BDO.Tests
 {
     public class EnhancementTests : BdoTest
@@ -25,11 +27,11 @@ namespace BDO.Tests
         [Fact]
         public async void CanCreateEnhancement()
         {
-            var container = CreateContainer();
+            var container = CreateContainer(useSagas: false);
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
 
-            await await bus.CommandAsync(new StartEnhancement("Test"));
+            await await bus.CommandAsync(new StartEnhancement("Test", "Item", 0, 0));
             
             Assert.NotNull(await repository.Find<Enhancement.Enhancement>("Test"));
         }
@@ -40,9 +42,7 @@ namespace BDO.Tests
             var container = CreateContainer(useSagas: false);
             var bus = container.GetInstance<IBus>();
             
-            var itemId = 44915.ToString();
-            await await bus.CommandAsync(new StartEnhancement("Test"));
-            await await bus.CommandAsync(new SetEnhancementInfo("Test", itemId, itemId, 2, 0, 0, 0, 0.7, 0));
+            await await bus.CommandAsync(new StartEnhancement("Test", "Dummy", 0, 0));
             await await bus.CommandAsync(new FailEnhancement("Test"));
 
             var info = await bus.QueryUntil(new EnhancementResultsQuery("Test"), r => r.NumberOfAttempts > 0);
@@ -60,10 +60,8 @@ namespace BDO.Tests
             var manager = container.GetInstance<IBranchManager>();
             var messageQueue = container.GetInstance<IMessageQueue>();
 
-            var itemId = 44915.ToString();
-
-            var total = 100;
-            var nBatches = 2;
+            var total = 10000;
+            var nBatches = 5;
 
             var stats = await bus.QueryAsync(new StatsQuery());
             var totalSum = 0.0;
@@ -72,19 +70,15 @@ namespace BDO.Tests
                 await manager.Branch($"test{iBatch}");
 
                 var nTests = total / nBatches;
-                for (int iTest = 0; iTest < nTests; iTest++)
+                for (var iTest = 0; iTest < nTests; iTest++)
                 {
                     var test = $"Test{iTest}";
-                    await await bus.CommandAsync(new StartEnhancement(test));
-                    await await bus.CommandAsync(new SetEnhancementInfo(test, itemId, itemId, 2, 36, 0.1, 0.01, 0.5, 0.002));
+                    await await bus.CommandAsync(new StartEnhancement(test, "Silver Embroidered", 1, 36));
                 }
 
                 await manager.Ready;
-                /*await bus.QueryUntil(
-                    new EnhancementResultsQuery($"Test{nTests - 1}"),
-                    r => r.NumberOfAttempts > 0,
-                    TimeSpan.FromSeconds(300));*/
-                
+               
+                log.Info($"Batch {iBatch} finished...");
                 messageQueue.Alert(new InvalidateProjections());
                 stats = await bus.QueryAsync(new StatsQuery());
                 var res = ((double)stats.NumberOfFailures / nTests) + 1;
@@ -98,7 +92,38 @@ namespace BDO.Tests
 
             var expectation = totalSum / nBatches;
             log.Info($"Expected number of attempts total : {expectation}");
-            Assert.True(Math.Abs(expectation - 2.13) < 1);
+            Assert.True(Math.Abs(expectation - 2.13) < 0.5);
+        }
+        
+        [Fact]
+        public async void CanGetExpectedNumberOfAttemptsWithSaga()
+        {
+            var container = CreateContainer(useSagas: true);
+            var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
+            var manager = container.GetInstance<IBranchManager>();
+
+            var testsPerBatch = 100;
+            var nPaths = 10000;
+            var nBatches = nPaths / testsPerBatch;
+            var numberOfFailures = 0;
+            
+            for (var iBatch = 0; iBatch < nBatches; iBatch++)
+            {
+                await manager.Branch($"Batch{iBatch}");
+                await await bus.CommandAsync(new CreateEnhancementTest($"Batch{iBatch}", nPaths / nBatches, "Silver Embroidered", 1, 36));
+                
+                await manager.Ready;
+                var results = await bus.QueryAsync(new EnhancementTestResultQuery($"Batch{iBatch}"));
+                numberOfFailures += results.NumberOfFailures;
+
+                await manager.Branch(BranchManager.Master);
+                await manager.DeleteBranch($"Batch{iBatch}");
+            }
+
+            var expectation = ((double)numberOfFailures / nPaths) + 1;
+            log.Info($"Expected number of attempts total : {expectation}");
+            Assert.True(Math.Abs(expectation - 2.13) < 0.5);
         }
     }
 }

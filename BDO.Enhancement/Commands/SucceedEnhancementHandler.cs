@@ -12,7 +12,7 @@
     }  
     protected override void Act (Enhancement enhancement, SucceedEnhancement command)
     {
-      enhancement.Success();
+      enhancement.Success(command.NumberOfFailures);
     }
   }
 }

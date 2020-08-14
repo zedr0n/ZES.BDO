@@ -12,7 +12,7 @@
     }  
     protected override Enhancement Create (StartEnhancement command)
     {
-      return new Enhancement(command.Target);
+      return new Enhancement(command.Target, command.Item, command.Grade, command.Failstack);
     }
   }
 }

@@ -53,6 +53,7 @@ namespace BDO.Enhancement.Sagas
 
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.EnhancementTestCreated, State.Computing)
+                // .OnExit(() => RandomGenerator.Initialise(_numberOfPaths))
                 .Ignore(Trigger.EnhancementSucceeded);
 
             StateMachine.Configure(State.Computing)

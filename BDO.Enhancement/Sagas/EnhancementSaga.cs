@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Commands;
 using BDO.Enhancement.Events;
@@ -11,7 +12,6 @@ namespace BDO.Enhancement.Sagas
     /// <inheritdoc />
     public class EnhancementSaga : StatelessSaga<EnhancementSaga.State, EnhancementSaga.Trigger>
     {
-        private readonly Random _random;
         private readonly double _hardCap = Config.HardCap;
         
         private int _failStack;
@@ -23,6 +23,10 @@ namespace BDO.Enhancement.Sagas
         private double _increase;
         private double _softCapIncrease;
         private int _numberOfFailures;
+        
+        private List<double> _randoms = new List<double>();
+
+        private IEnumerator<double> _enumerator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EnhancementSaga"/> class.
@@ -36,8 +40,6 @@ namespace BDO.Enhancement.Sagas
                 _numberOfFailures++;
             });
             Register<EnhancementSucceeded>(e => e.Id, Trigger.Success);
-            
-            _random = new Random();
         }
         
         public enum State
@@ -53,7 +55,17 @@ namespace BDO.Enhancement.Sagas
             Attempt,
             Success,
         }
-        
+
+        private double Next()
+        {
+            if (_numberOfFailures >= RandomGenerator.Dimension)
+                throw new InvalidOperationException($"Exceeded dimensionality : {_numberOfFailures} >= {RandomGenerator.Dimension}");
+
+            _enumerator.MoveNext();
+            return _enumerator.Current;
+        }
+
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {   
             StateMachine = new StateMachine<State, Trigger>(State.Open);
@@ -63,7 +75,9 @@ namespace BDO.Enhancement.Sagas
             StateMachine.Configure(State.Enhancing)
                 .OnEntry(() =>
                 {
-                    var success = _random.NextDouble() < _success;
+                    var rand = Next();
+                    _randoms.Add(rand);
+                    var success = rand < _success;
                     if (success)
                         SendCommand(new SucceedEnhancement(Id, _numberOfFailures));
                     else
@@ -83,7 +97,8 @@ namespace BDO.Enhancement.Sagas
             var info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(e.Item, e.Grade));
             if (info == null)
                 return;
-            
+
+            _enumerator = RandomGenerator.Generate(Id).GetEnumerator();
             _base = info.BaseChance;
             _increase = info.BaseIncrease;
             _softCap = info.SoftCap;

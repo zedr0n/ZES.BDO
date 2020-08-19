@@ -35,7 +35,21 @@ namespace BDO.Enhancement.Static
                 BaseChance = 0.25,
                 BaseIncrease = 0.025,
                 SoftCap = 0.7,
-                SoftCapIncrease = 0.0005,
+                SoftCapIncrease = 0.005,
+            },
+            new EnhancementInfo("Gold accessory", 1)
+            {
+                BaseChance = 0.1,
+                BaseIncrease = 0.01,
+                SoftCap = 0.5,
+                SoftCapIncrease = 0.002,
+            },
+            new EnhancementInfo("Gold accessory", 2)
+            {
+                BaseChance = 0.075,
+                BaseIncrease = 0.0075,
+                SoftCap = 0.4,
+                SoftCapIncrease = 0.0015,
             },
             new EnhancementInfo("Dummy", 0)
             {

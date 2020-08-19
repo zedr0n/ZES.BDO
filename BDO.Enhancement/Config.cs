@@ -3,6 +3,8 @@ using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Utils;
 
+#pragma warning disable SA1600
+
 namespace BDO.Enhancement
 {
     public class Config

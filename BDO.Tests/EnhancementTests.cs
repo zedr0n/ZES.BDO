@@ -129,5 +129,22 @@ namespace BDO.Tests
             log.Info($"Expected number of attempts total : {expectation}");
             Assert.True(Math.Abs(expectation - 2.13) < 0.5);
         }
+
+        [Fact]
+        public void CanUseDecisionProcess()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Gold accessory";
+            var targetGrade = 2;
+            var failstack = 0;
+            var process = new EnhancementProcess(item, targetGrade, failstack);
+            var policy = new JustEnhancePolicy(targetGrade);
+
+            var value = process.GetOptimalValue(policy); 
+            log.Info($"Optimal value : {value}");
+            Assert.Equal(10.18571038208039, value);
+        }
     }
 }

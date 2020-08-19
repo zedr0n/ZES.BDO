@@ -13,7 +13,9 @@
 
     <ItemGroup>
       <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+      <AdditionalFiles Include="..\stylecop.json" />
     </ItemGroup>
+
 
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
@@ -37,7 +39,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.558" />
+                <PackageReference Include="ZES" Version="1.0.560" />
             </ItemGroup>
         </Otherwise>
     </Choose>

@@ -8,6 +8,8 @@ using ZES.Interfaces;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
+#pragma warning disable SA1600
+
 namespace BDO.Core
 {
     public class Config

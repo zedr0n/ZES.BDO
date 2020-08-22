@@ -10,7 +10,7 @@ namespace BDO.Enhancement.Events
             switch (reader.TokenType)
             {
                 case JsonToken.String when currentProperty == nameof(EnhancementFailed.Id):
-                    e.Id = (string) reader.Value;
+                    e.Id = (string)reader.Value;
                     break;
             }
         }

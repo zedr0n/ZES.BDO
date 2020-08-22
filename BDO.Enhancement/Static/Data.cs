@@ -23,6 +23,20 @@ namespace BDO.Enhancement.Static
                 SoftCap = 0.5,
                 SoftCapIncrease = 0.002,
             },
+            new EnhancementInfo("Silver Embroidered", 2)
+            {
+                BaseChance = 0.075,
+                BaseIncrease = 0.0075,
+                SoftCap = 0.4,
+                SoftCapIncrease = 0.0015,
+            },
+            new EnhancementInfo("Silver Embroidered", 3)
+            {
+                BaseChance = 0.025,
+                BaseIncrease = 0.0025,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.0005,
+            },
             new EnhancementInfo("Silver Embroidered", 4)
             {
                 BaseChance = 0.005,
@@ -50,6 +64,13 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0075,
                 SoftCap = 0.4,
                 SoftCapIncrease = 0.0015,
+            },
+            new EnhancementInfo("Gold accessory", 3)
+            {
+                BaseChance = 0.025,
+                BaseIncrease = 0.0025,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.0005,
             },
             new EnhancementInfo("Dummy", 0)
             {

@@ -41,8 +41,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.560" />
-                <PackageReference Include="ZES.Tests" Version="1.0.560" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.562" />
+                <PackageReference Include="ZES.Tests" Version="1.0.562" />
             </ItemGroup>
         </Otherwise>
     </Choose>

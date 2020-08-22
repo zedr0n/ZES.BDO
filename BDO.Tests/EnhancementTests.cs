@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Threading;
 using BDO.Enhancement;
 using BDO.Enhancement.Commands;
 using BDO.Enhancement.Queries;
+using BDO.Enhancement.Stochastics;
+using BDO.Enhancement.Stochastics.Policies;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Alerts;
@@ -20,9 +23,12 @@ namespace BDO.Tests
 {
     public class EnhancementTests : BdoTest
     {
-        public EnhancementTests(ITestOutputHelper outputHelper) 
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public EnhancementTests(ITestOutputHelper outputHelper, ITestOutputHelper testOutputHelper) 
             : base(outputHelper)
         {
+            _testOutputHelper = testOutputHelper;
         }
 
         [Fact]
@@ -129,6 +135,25 @@ namespace BDO.Tests
             log.Info($"Expected number of attempts total : {expectation}");
             Assert.True(Math.Abs(expectation - 2.13) < 0.5);
         }
+        
+        [Fact]
+        public void CanGetExpectedNumberOfAttemptsViaProcess()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 2;
+            var failstack = 36;
+            var initialState = new EnhancementState(failstack);
+            initialState.Items[targetGrade - 1] = int.MaxValue;
+            var process = new NumberOfAttemptsProcess(item, targetGrade, initialState) { Log = null };
+            var policy = new JustEnhancePolicy(targetGrade);
+
+            var value = process.GetOptimalValue(policy); 
+            log.Info($"Optimal value : {value}");
+            Assert.Equal(2.1261654496171203, value);
+        }
 
         [Fact]
         public void CanUseDecisionProcess()
@@ -137,14 +162,71 @@ namespace BDO.Tests
             var log = container.GetInstance<ILog>();
             
             var item = "Gold accessory";
-            var targetGrade = 2;
+            var targetGrade = 1;
             var failstack = 0;
-            var process = new EnhancementProcess(item, targetGrade, failstack);
+            var process = new NumberOfAttemptsProcess(item, targetGrade, failstack) { Log = null };
             var policy = new JustEnhancePolicy(targetGrade);
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Optimal value : {value}");
-            Assert.Equal(10.18571038208039, value);
+            Assert.Equal(3.3410398069600595, value);
+        }
+        
+        [Fact]
+        public void CanCalculateSuccessProbability()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 2;
+            var failstack = 0;
+            var initialState = new EnhancementState(failstack)
+            {
+                Items = new []
+                {
+                    50,
+                    1,
+                    0,
+                    0,
+                    0,
+                },
+            };
+            var process = new SuccessProbabilityProcess(item, targetGrade, initialState) { Log = null };
+            var policy = new JustEnhancePolicy(targetGrade);
+
+            var value = process.GetOptimalValue(policy); 
+          
+            log.Info($"Enhancement probability : {value}");
+            Assert.Equal(0.5837432581278256, value);
+        }
+        
+        [Fact]
+        public void CanCalculateExpectedNumberOfItems()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Gold accessory";
+            var targetGrade = 2;
+            var failstack = 0;
+            var initialState = new EnhancementState(failstack)
+            {
+                Items = new []
+                {
+                    50,
+                    1,
+                    0,
+                    0,
+                    0,
+                },
+            };
+            var process = new ExpectedNumberOfItemsProcess(item, targetGrade, initialState) { Log = null };
+            var policy = new KeepEnhancingPolicy(targetGrade);
+
+            var value = process.GetOptimalValue(policy); 
+            log.Info($"Expected number of items : {value}");
+            Assert.Equal(0.7473081185133291, value);
         }
     }
 }

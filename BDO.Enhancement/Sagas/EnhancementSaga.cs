@@ -4,28 +4,26 @@ using System.Linq;
 using BDO.Enhancement.Commands;
 using BDO.Enhancement.Events;
 using BDO.Enhancement.Static;
+using BDO.Enhancement.Stochastics;
+using BDO.Enhancement.Stochastics.Actions;
+using BDO.Enhancement.Stochastics.Policies;
 using Stateless;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Sagas
 {
     /// <inheritdoc />
     public class EnhancementSaga : StatelessSaga<EnhancementSaga.State, EnhancementSaga.Trigger>
     {
-        private readonly double _hardCap = Config.HardCap;
-        
-        private int _failStack;
-        private double _success;
+        private EnhancementState _state;
+        private List<IMarkovAction<EnhancementState>> _actions;
+        private IPolicy<EnhancementState> _policy;
+        private EnhancementProbability _probability;
 
-        private double _base;
-        private double _softCap;
-
-        private double _increase;
-        private double _softCapIncrease;
         private int _numberOfFailures;
+        private int _targetGrade;
         
-        private List<double> _randoms = new List<double>();
-
         private IEnumerator<double> _enumerator;
 
         /// <summary>
@@ -36,7 +34,6 @@ namespace BDO.Enhancement.Sagas
             RegisterIf<EnhancementStarted>(e => e.EnchancementId, Trigger.Started, e => Data.EnhancementInfos.Any(i => i.IsFor(e.Item, e.Grade)), Initialise);
             Register<EnhancementFailed>(e => e.Id, Trigger.Attempt, e =>
             {
-                _failStack++;
                 _numberOfFailures++;
             });
             Register<EnhancementSucceeded>(e => e.Id, Trigger.Success);
@@ -76,16 +73,24 @@ namespace BDO.Enhancement.Sagas
                 .OnEntry(() =>
                 {
                     var rand = Next();
-                    _randoms.Add(rand);
-                    var success = rand < _success;
+                    var action = GetNextAction();
+
+                    var total = 0.0;
+                    foreach (var state in action[_state])
+                    {
+                        total += _probability[_state, state, action];
+                        if (rand < total)
+                        {
+                            _state = state.Clone();
+                            break;
+                        }
+                    }
+                    
+                    var success = _state.Items[_targetGrade] > 0;
                     if (success)
                         SendCommand(new SucceedEnhancement(Id, _numberOfFailures));
                     else
                         SendCommand(new FailEnhancement(Id));
-
-                    _success += GetIncrease(_success);
-                    if (_success > _hardCap)
-                        _success = _hardCap;
                 })
                 .PermitReentry(Trigger.Attempt);
 
@@ -94,37 +99,25 @@ namespace BDO.Enhancement.Sagas
 
         private void Initialise(EnhancementStarted e)
         {
-            var info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(e.Item, e.Grade));
-            if (info == null)
-                return;
-
+            _targetGrade = e.Grade + 1;
             _enumerator = RandomGenerator.Generate(Id).GetEnumerator();
-            _base = info.BaseChance;
-            _increase = info.BaseIncrease;
-            _softCap = info.SoftCap;
-            _softCapIncrease = info.SoftCapIncrease;
-            _failStack = e.Failstack;
-            _success = GetInitial(_failStack);
+            _policy = new JustEnhancePolicy(_targetGrade);
+            _actions = _policy.GetAllowedActions().ToList();
+            _probability = new EnhancementProbability(e.Item);
+            _state = new EnhancementState(e.Failstack);
+            _state.Items[_targetGrade - 1] = int.MaxValue; 
         }
 
-        private double GetIncrease(double current)
+        private IMarkovAction<EnhancementState> GetNextAction()
         {
-            return current > _softCap ? _softCapIncrease : _increase;
-        }
-
-        private double GetInitial(int failStack)
-        {
-            var success = _base;
-            while (failStack > 0)
+            foreach (var action in _actions)
             {
-                success += GetIncrease(success);
-                failStack--;
+                var proba = _policy[action, _state];
+                if (proba.Equals(1.0))
+                    return action;
             }
 
-            if (success > _hardCap)
-                success = _hardCap;
-
-            return success;
+            return null;
         }
     }
 }

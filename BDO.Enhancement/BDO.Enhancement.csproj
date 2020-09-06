@@ -12,7 +12,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.205">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <AdditionalFiles Include="..\stylecop.json" />
     </ItemGroup>
 
@@ -39,7 +42,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.562" />
+                <PackageReference Include="ZES" Version="1.0.569" />
             </ItemGroup>
         </Otherwise>
     </Choose>

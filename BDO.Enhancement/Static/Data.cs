@@ -7,6 +7,8 @@ namespace BDO.Enhancement.Static
 {
     public static class Data
     {
+        public static int EnhancementBonus = 0;
+        
         public static List<EnhancementInfo> EnhancementInfos { get; } = new List<EnhancementInfo>
         {
             new EnhancementInfo("Silver Embroidered", 0)

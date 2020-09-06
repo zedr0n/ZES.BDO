@@ -70,6 +70,7 @@ namespace BDO.Enhancement.Stochastics
             {
                 var info = _info[grade - 1];
                 var chance = info.BaseChance;
+                failstack += Data.EnhancementBonus;
                 while (--failstack >= 0)
                 {
                     chance += chance > info.SoftCap ? info.SoftCapIncrease : info.BaseIncrease;

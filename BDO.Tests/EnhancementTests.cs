@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using BDO.Enhancement;
@@ -147,12 +148,12 @@ namespace BDO.Tests
             var failstack = 36;
             var initialState = new EnhancementState(failstack);
             initialState.Items[targetGrade - 1] = int.MaxValue;
-            var process = new NumberOfAttemptsProcess(item, targetGrade, initialState) { Log = null };
-            var policy = new JustEnhancePolicy(targetGrade);
+            var process = new NumberOfAttemptsProcess(targetGrade, initialState) { Log = null };
+            var policy = new JustEnhancePolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Optimal value : {value}");
-            Assert.Equal(2.1261654496171203, value);
+            Assert.Equal(2.0855537713302703, value);
         }
 
         [Fact]
@@ -164,12 +165,12 @@ namespace BDO.Tests
             var item = "Gold accessory";
             var targetGrade = 1;
             var failstack = 0;
-            var process = new NumberOfAttemptsProcess(item, targetGrade, failstack) { Log = null };
-            var policy = new JustEnhancePolicy(targetGrade);
+            var process = new NumberOfAttemptsProcess(targetGrade, failstack) { Log = null };
+            var policy = new JustEnhancePolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Optimal value : {value}");
-            Assert.Equal(3.3410398069600595, value);
+            Assert.Equal(3.1213873601591193, value);
         }
         
         [Fact]
@@ -192,13 +193,75 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new SuccessProbabilityProcess(item, targetGrade, initialState) { Log = null };
-            var policy = new JustEnhancePolicy(targetGrade);
+            var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
+            var policy = new JustEnhancePolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy); 
           
             log.Info($"Enhancement probability : {value}");
-            Assert.Equal(0.5837432581278256, value);
+            Assert.Equal(0.6391845543605477, value);
+        }
+        
+        [Fact]
+        public void CanCalculateSuccessProbabilityWithTieredFailstack()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 3;
+            var initialState = new EnhancementState()
+            {
+                Items = new []
+                {
+                    20,
+                    0,
+                    0,
+                    0,
+                    0,
+                },
+            };
+
+            var probabilities = new Dictionary<(int, int, int), double>();
+            var costs = new Dictionary<(int, int, int), double>();
+            var efficiency = new Dictionary<(int, int, int), double>();
+            for (var failstack0 = 10; failstack0 <= 10; ++failstack0)
+            {
+                for (var failstack1 = 30; failstack1 <= 30; ++failstack1)
+                {
+                    for(var failstack2 = 30; failstack2 <= 30; ++failstack2)
+                    {
+                        var key = (failstack0, failstack1, failstack2);
+                        var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
+                        var costProcess = new ExpectedCostProcess(initialState) { Log = null };
+
+                        var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
+                        {
+                            {0, failstack0},
+                            {1, failstack1},
+                            {2, failstack2},
+                        });
+
+                        probabilities[key] = process.GetOptimalValue(policy, 1e-6);
+                        costs[key] = -costProcess.GetOptimalValue(policy, 1);
+                        efficiency[key] = (int)(costs[key] / probabilities[key] / 100); 
+                        log.Info($"Enhancement probability for failstack = ({key}): {probabilities[key]} at {costs[key]}, efficiency : {efficiency[key]}");
+                    }
+                }
+            }
+
+            for (var p = 0.01; p < 1; p += 0.01)
+            {
+                var keys = probabilities.Where(x => Math.Abs(x.Value - p) < 0.005).Select(x => x.Key).ToList();
+                if (!keys.Any())
+                    continue;
+                var max = keys.Select(k => efficiency[k]).Min();
+                var key = efficiency.Single(e => e.Value == max).Key;
+                log.Info($"Most efficient for probability {probabilities[key]} : {key} at {max}");
+            }
+            
+            // var max = probabilities.First(v => v.Value == probabilities.Max(s => s.Value));
+            //log.Info($"Enhancement probability for failstack = ({max.Key}): {max.Value} at {-costs[max.Key]}");
         }
         
         [Fact]
@@ -221,12 +284,174 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new ExpectedNumberOfItemsProcess(item, targetGrade, initialState) { Log = null };
-            var policy = new KeepEnhancingPolicy(targetGrade);
+            var process = new ExpectedNumberOfItemsProcess(targetGrade, initialState) { Log = null };
+            var policy = new KeepEnhancingPolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Expected number of items : {value}");
-            Assert.Equal(0.7473081185133291, value);
+            Assert.Equal(0.8641442918318539, value);
         }
+
+        [Fact]
+        public void CanCalculateFailstackCost()
+        {
+            
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+
+            var prevValue = 0.0;
+            for (var failstack = 1; failstack < 5; failstack++)
+            {
+                var initialState = new EnhancementState(0)
+                {
+                    Items = new []
+                    {
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                    },
+                };
+                var process = new ReblathCostProcess(failstack, initialState);
+                var policy = new ReblathPolicy(failstack);
+
+                var value = process.GetOptimalValue(policy, 10); 
+                log.Info($"Failstack = {failstack} cost: {value - prevValue}");
+                prevValue = value;
+            }
+            
+            Assert.Equal(960271.01210672, prevValue);
+        }
+
+        [Fact]
+        public void CanCalculateExpectedProfit()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 2;
+            var failstack = 0;
+            var initialCost = failstack * 200000;
+            var initialState = new EnhancementState(failstack)
+            {
+                Items = new []
+                {
+                    20,
+                    0,
+                    0,
+                    0,
+                    0,
+                },
+            };
+            var process = new ExpectedProfitProcess(targetGrade, initialState) { Log = null };
+            var policy = new JustEnhancePolicy(item, targetGrade);
+
+            var value = process.GetOptimalValue(policy);
+            
+            log.Info($"Expected profit for failstack={failstack} : {value - initialCost}");
+        }
+
+        [Fact]
+        public void CanCalculateExpectedCost()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 3;
+
+            var failstack0 = 2;
+            var failstack1 = 18;
+            var failstack2 = 23;
+            
+            var initialState = new EnhancementState(0)
+            {
+                Items = new []
+                {
+                    20,
+                    1,
+                    0,
+                    0,
+                    0,
+                },
+            };
+            var process = new ExpectedCostProcess(initialState) { Log = null };
+            var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
+            {
+                {0, failstack0},
+                {1, failstack1},
+                {2, failstack2}
+            });
+            var value = process.GetOptimalValue(policy, 1000);
+            log.Info($"Expected cost for ({failstack0},{failstack1},{failstack2}) : {-value}");
+        }
+        
+        [Fact]
+        public void CanGetExpectedProfitWithTieredFailstack()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 3;
+
+            var minFailstack0 = 5;
+            var maxFailstack0 = 5;
+            
+            var minFailstack1 = 20;
+            var maxFailstack1 = 20;
+            
+            var minFailstack2 = 25;
+            var maxFailstack2 = 25;
+
+            var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
+            foreach (var quantity in quantities)
+            {
+                for (var failstack0 = minFailstack0; failstack0 <= maxFailstack0; failstack0++)
+                {
+                    for (var failstack2 = minFailstack2; failstack2 <= maxFailstack2; ++failstack2)
+                    {
+                        var prevValue = 0.0;
+                        var values = new List<double>();
+                        for (var failstack1 = minFailstack1; failstack1 <= maxFailstack1; ++failstack1)
+                        {
+                            var initialState = new EnhancementState(0)
+                            {
+                                Items = new []
+                                {
+                                    quantity,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                },
+                            };
+                            var process = new ExpectedProfitProcess(targetGrade, initialState) { Log = null };
+                            var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
+                            {
+                                {0, failstack0},
+                                {1, failstack1},
+                                {2, failstack2},
+                                {3, failstack2},
+                            });
+                            policy.StopAtOnce = false;
+                            // policy.Log = log;
+                            //var policy = new JustEnhancePolicy(item, targetGrade);
+
+                            var value = process.GetOptimalValue(policy, 1000);
+                            if (prevValue > value)
+                                break;
+                            values.Add(value);
+                            // log.Info($"Expected profit for failstack=({failstack0},{failstack1},{failstack2}) : {value}");
+                    
+                        }
+                        log.Info($"Expected profit from {quantity} items for +2 failstack={failstack2} and +0 failstack={failstack0} : {values.Max()}, per unit : {values.Max()/quantity} at +1 failstack={minFailstack1 + values.IndexOf(values.Max())}");
+                    }
+                }
+            }
+        }            
     }
 }

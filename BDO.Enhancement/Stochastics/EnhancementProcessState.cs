@@ -10,12 +10,14 @@ namespace BDO.Enhancement.Stochastics
     {
         public EnhancementState(int failStack = 0)
         {
-            Items = new[] { int.MaxValue, 0, 0, 0, 0 };
+            Items = new[] { int.MaxValue, 0, 0, 0, 0, 0 };
+            StoredFailstacks = new[] { 0, 0, 0 };
             NumberOfAttempts = 0;
             FailStack = failStack;
+            JustFailedGrade = -1;
         }
 
-        private string DebuggerDisplay
+        public string DebuggerDisplay
         {
             get
             {
@@ -23,15 +25,23 @@ namespace BDO.Enhancement.Stochastics
             }
         }
 
+        public int[] StoredFailstacks { get; set; }
         public int[] Items { get; set; }
         public int NumberOfAttempts { get; set; }
         public int FailStack { get; set; }
+        public int JustFailedGrade { get; set; }
 
         public EnhancementState Clone(Action<EnhancementState> action = null)
         {
             var state = new EnhancementState();
             for (var grade = 0; grade < Items.Length; grade++)
                 state.Items[grade] = Items[grade];
+
+            state.StoredFailstacks[0] = StoredFailstacks[0];
+            state.StoredFailstacks[1] = StoredFailstacks[1];
+            state.StoredFailstacks[2] = StoredFailstacks[2];
+
+            state.JustFailedGrade = JustFailedGrade;
 
             state.NumberOfAttempts = NumberOfAttempts;
             state.FailStack = FailStack;
@@ -51,8 +61,12 @@ namespace BDO.Enhancement.Stochastics
             var b = true;
             for (var i = 0; i < Items.Length; ++i)
                 b &= Items[i] == other.Items[i];
+
+            b &= StoredFailstacks[0] == other.StoredFailstacks[0];
+            b &= StoredFailstacks[1] == other.StoredFailstacks[1];
+            b &= StoredFailstacks[2] == other.StoredFailstacks[2];
             
-            return b && NumberOfAttempts == other.NumberOfAttempts && FailStack == other.FailStack;
+            return b && NumberOfAttempts == other.NumberOfAttempts && FailStack == other.FailStack && JustFailedGrade == other.JustFailedGrade;
         }
 
         /// <inheritdoc/>
@@ -75,8 +89,12 @@ namespace BDO.Enhancement.Stochastics
                 var hashCode = 0;
                 foreach (var i in Items)
                     hashCode = (hashCode * 397) ^ i.GetHashCode();
+                hashCode = (hashCode * 397) ^ StoredFailstacks[0].GetHashCode();
+                hashCode = (hashCode * 397) ^ StoredFailstacks[1].GetHashCode();
+                hashCode = (hashCode * 397) ^ StoredFailstacks[2].GetHashCode();
                 hashCode = (hashCode * 397) ^ NumberOfAttempts;
                 hashCode = (hashCode * 397) ^ FailStack;
+                hashCode = (hashCode * 397) ^ JustFailedGrade;
                 return hashCode;
             }
         }

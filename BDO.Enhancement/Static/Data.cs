@@ -7,7 +7,7 @@ namespace BDO.Enhancement.Static
 {
     public static class Data
     {
-        public static int EnhancementBonus = 0;
+        public static int EnhancementBonus = 1;
         
         public static List<EnhancementInfo> EnhancementInfos { get; } = new List<EnhancementInfo>
         {
@@ -81,6 +81,14 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
             },
+            new EnhancementInfo("Armor", 4)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.02,
+                BaseIncrease = 0.002,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.0002,
+            },
         };
         
         public class EnhancementInfo
@@ -93,12 +101,13 @@ namespace BDO.Enhancement.Static
 
             public string Name { get; }
             public int Grade { get; }
+            public int ItemLoss { get; set; } = 1;
             public double BaseChance { get; set; }
             public double BaseIncrease { get; set; }
             public double SoftCap { get; set; }
             public double SoftCapIncrease { get; set; }
             
-            public bool IsFor(string item, int grade) => item.StartsWith(Name, StringComparison.InvariantCultureIgnoreCase) && Grade == grade;
+            public bool IsFor(string item, int grade) => Grade == grade && item.StartsWith(Name, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

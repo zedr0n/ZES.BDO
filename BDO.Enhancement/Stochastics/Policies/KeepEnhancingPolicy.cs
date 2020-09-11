@@ -5,13 +5,15 @@ using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics.Policies
 {
-    public class KeepEnhancingPolicy : IPolicy<EnhancementState>
+    public class KeepEnhancingPolicy : IPolicy<EnhancementState>, IDeterministicPolicy<EnhancementState>
     {
+        private readonly string _item;
         private readonly int _targetGrade;
 
-        public KeepEnhancingPolicy(int targetGrade)
+        public KeepEnhancingPolicy(string item,int targetGrade)
         {
             _targetGrade = targetGrade;
+            _item = item;
         }
 
         /// <inheritdoc />
@@ -19,7 +21,7 @@ namespace BDO.Enhancement.Stochastics.Policies
         {
             var list = new List<IMarkovAction<EnhancementState>>();
             for (var i = 1; i <= _targetGrade; ++i)
-                list.Add(new EnhancementAction(i));
+                list.Add(new EnhancementAction(i, _item));
             return list;
         }
         
@@ -37,6 +39,20 @@ namespace BDO.Enhancement.Stochastics.Policies
 
                 return 0.0;
             }
+        }
+
+        public IMarkovAction<EnhancementState> this[EnhancementState state]
+        {
+            get
+            {
+                if (state.Items[0] <= 0)
+                    return null;
+                
+                var grade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+                
+                return new EnhancementAction(grade, _item);
+            } 
+            set => throw new System.NotImplementedException();
         }
     }
 }

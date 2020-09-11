@@ -17,9 +17,7 @@ namespace BDO.Enhancement.Sagas
     public class EnhancementSaga : StatelessSaga<EnhancementSaga.State, EnhancementSaga.Trigger>
     {
         private EnhancementState _state;
-        private List<IMarkovAction<EnhancementState>> _actions;
         private IPolicy<EnhancementState> _policy;
-        private EnhancementProbability _probability;
 
         private int _numberOfFailures;
         private int _targetGrade;
@@ -78,7 +76,7 @@ namespace BDO.Enhancement.Sagas
                     var total = 0.0;
                     foreach (var state in action[_state])
                     {
-                        total += _probability[_state, state, action];
+                        total += action[_state, state];
                         if (rand < total)
                         {
                             _state = state.Clone();
@@ -101,20 +99,26 @@ namespace BDO.Enhancement.Sagas
         {
             _targetGrade = e.Grade + 1;
             _enumerator = RandomGenerator.Generate(Id).GetEnumerator();
-            _policy = new JustEnhancePolicy(_targetGrade);
-            _actions = _policy.GetAllowedActions().ToList();
-            _probability = new EnhancementProbability(e.Item);
+            _policy = new JustEnhancePolicy(e.Item, _targetGrade);
             _state = new EnhancementState(e.Failstack);
             _state.Items[_targetGrade - 1] = int.MaxValue; 
         }
 
         private IMarkovAction<EnhancementState> GetNextAction()
         {
-            foreach (var action in _actions)
+            if (_policy is IDeterministicPolicy<EnhancementState> policy)
             {
-                var proba = _policy[action, _state];
-                if (proba.Equals(1.0))
-                    return action;
+                return policy[_state];
+            }
+            
+            if (_policy is IGeneralizedPolicy<EnhancementState> generalizedPolicy)
+            {
+                foreach (var action in generalizedPolicy.GetAllowedActions())
+                {
+                    var proba = generalizedPolicy[action, _state];
+                    if (proba.Equals(1.0))
+                        return action;
+                }
             }
 
             return null;

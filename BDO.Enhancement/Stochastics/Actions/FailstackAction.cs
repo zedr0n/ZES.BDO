@@ -8,7 +8,11 @@ namespace BDO.Enhancement.Stochastics.Actions
     {
         public override IEnumerable<EnhancementState> this[EnhancementState current] => new List<EnhancementState>
         {
-            current.Clone(s => s.FailStack++),
+            current.Clone(s =>
+            {
+                s.FailStack++;
+                s.JustFailedGrade = -1;
+            }),
         };
     }
 }

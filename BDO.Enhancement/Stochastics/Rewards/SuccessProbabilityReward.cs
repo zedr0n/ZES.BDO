@@ -16,7 +16,7 @@ namespace BDO.Enhancement.Stochastics.Rewards
         {
             get
             {
-                if (to.Items[_targetGrade] == 1 && from.Items[_targetGrade] == 0)
+                if (to.Items[_targetGrade] - from.Items[_targetGrade] == 1)
                     return 1.0;
                 return 0.0;
             }    

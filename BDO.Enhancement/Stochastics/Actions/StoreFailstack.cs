@@ -14,6 +14,8 @@ namespace BDO.Enhancement.Stochastics.Actions
 
         public int Slot => _slot;
 
+        public override double this[EnhancementState @from, EnhancementState to] => 1.0;
+
         public override IEnumerable<EnhancementState> this[EnhancementState current] => new List<EnhancementState>
         {
            current.Clone(s =>

@@ -8,12 +8,31 @@ namespace BDO.Enhancement.Stochastics
     [DebuggerDisplay("{DebuggerDisplay}, {NumberOfAttempts}, {FailStack}")]
     public class EnhancementState : IMarkovState, IEquatable<EnhancementState>
     {
+        private static int _itemsSize = sizeof(int) * 5;
+        private static int _storedFailstacksSize = sizeof(int) * 2;
+
+        private int[] _items;
+        private int[] _storedFailstacks;
+        
         public EnhancementState(int failStack = 0)
         {
-            Items = new[] { int.MaxValue, 0, 0, 0, 0, 0 };
-            StoredFailstacks = new[] { 0, 0, 0 };
+            _items = new[] { int.MaxValue, 0, 0, 0, 0, 0, 0};
+            _storedFailstacks = new[] { 0, 0, 0 };
             NumberOfAttempts = 0;
             FailStack = failStack;
+            JustFailedGrade = -1;
+        }
+
+        public EnhancementState(ref int[] items, ref int[] storedFailstacks)
+        {
+            _items = new int[6];
+            _storedFailstacks = new int[3];
+            items.CopyTo(_items, 0);
+            storedFailstacks.CopyTo(_storedFailstacks, 0);
+            // Buffer.BlockCopy(items, 0, _items, 0, _itemsSize);
+            // Buffer.BlockCopy(storedFailstacks, 0, _storedFailstacks, 0, _storedFailstacksSize);
+            NumberOfAttempts = 0;
+            FailStack = 0;
             JustFailedGrade = -1;
         }
 
@@ -25,26 +44,30 @@ namespace BDO.Enhancement.Stochastics
             }
         }
 
-        public int[] StoredFailstacks { get; set; }
-        public int[] Items { get; set; }
+        public int[] StoredFailstacks
+        {
+            get => _storedFailstacks;
+            set => _storedFailstacks = value;
+        }
+
+        public int[] Items
+        {
+            get => _items;
+            set => _items = value;
+        }
         public int NumberOfAttempts { get; set; }
         public int FailStack { get; set; }
         public int JustFailedGrade { get; set; }
 
         public EnhancementState Clone(Action<EnhancementState> action = null)
         {
-            var state = new EnhancementState();
-            for (var grade = 0; grade < Items.Length; grade++)
-                state.Items[grade] = Items[grade];
+            var state = new EnhancementState(ref _items, ref _storedFailstacks)
+            {
+                JustFailedGrade = JustFailedGrade, 
+                NumberOfAttempts = NumberOfAttempts,
+                FailStack = FailStack,
+            };
 
-            state.StoredFailstacks[0] = StoredFailstacks[0];
-            state.StoredFailstacks[1] = StoredFailstacks[1];
-            state.StoredFailstacks[2] = StoredFailstacks[2];
-
-            state.JustFailedGrade = JustFailedGrade;
-
-            state.NumberOfAttempts = NumberOfAttempts;
-            state.FailStack = FailStack;
             action?.Invoke(state);
 
             return state;
@@ -59,6 +82,10 @@ namespace BDO.Enhancement.Stochastics
                 return true;
 
             var b = true;
+            b &= Items.Length == other.Items.Length;
+            if (!b)
+                return false;
+            
             for (var i = 0; i < Items.Length; ++i)
                 b &= Items[i] == other.Items[i];
 

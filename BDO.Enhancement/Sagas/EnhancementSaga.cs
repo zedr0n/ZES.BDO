@@ -99,7 +99,7 @@ namespace BDO.Enhancement.Sagas
         {
             _targetGrade = e.Grade + 1;
             _enumerator = RandomGenerator.Generate(Id).GetEnumerator();
-            _policy = new JustEnhancePolicy(e.Item, _targetGrade);
+            _policy = new JustEnhancePolicy(e.Item, _targetGrade) { TrackNumberOfAttempts = true };
             _state = new EnhancementState(e.Failstack);
             _state.Items[_targetGrade - 1] = int.MaxValue; 
         }

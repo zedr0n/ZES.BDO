@@ -14,7 +14,13 @@ namespace BDO.Enhancement.Stochastics.Actions
             _info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade - 1));
         }
 
+        public EnhancementAction(int grade, Data.EnhancementInfo info)
+        {
+            Grade = grade;
+            _info = info;
+        }
 
+        public bool TrackNumberOfAttempts { get; set; } = false;
         private readonly Data.EnhancementInfo _info;
 
         public int Grade { get; }
@@ -24,8 +30,15 @@ namespace BDO.Enhancement.Stochastics.Actions
         {
             get
             {
-                if (base[from, to] == 0)
+                /*var fromItems = from.Items;
+                var toItems = to.Items;
+                var diffGrade = toItems[Grade] - fromItems[Grade];
+
+                if (diffGrade < 0 || diffGrade > 1)
                     return 0.0;
+                
+                if (base[from, to] == 0)
+                    return 0.0;*/
 
                 var chance = GetChance(from.FailStack);
                 if (to.Items[Grade] == from.Items[Grade]) // failure
@@ -40,23 +53,31 @@ namespace BDO.Enhancement.Stochastics.Actions
             {
                 if (current.Items[Grade - 1] > 0)
                 {
-                    return new List<EnhancementState>
+                    return new[] 
                         {
                             current.Clone(s =>
                             {
                                 s.Items[Grade]++;
                                 s.Items[Grade - 1]--;
-                                s.Items[0] -= _info.ItemLoss;
-                                s.NumberOfAttempts++;
+                                if (_info.ItemLoss > 0)
+                                    s.Items[0] -= _info.ItemLoss;
+                                
+                                if (TrackNumberOfAttempts)
+                                    s.NumberOfAttempts++;
                                 s.FailStack = 0;
                                 s.JustFailedGrade = -1;
                             }),
                             current.Clone(s =>
                             {
-                                s.Items[Grade - 1] -= _info.ItemLoss;
-                                s.Items[0] -= _info.ItemLoss;
+                                if (_info.ItemLoss > 0)
+                                {
+                                    s.Items[Grade - 1] -= _info.ItemLoss;
+                                    s.Items[0] -= _info.ItemLoss;
+                                }
+                                
                                 s.FailStack++;
-                                s.NumberOfAttempts++;
+                                if (TrackNumberOfAttempts)
+                                    s.NumberOfAttempts++;
                                 s.JustFailedGrade = Grade;
                             }),
                         };

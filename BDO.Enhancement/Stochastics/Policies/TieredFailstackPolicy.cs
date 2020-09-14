@@ -14,12 +14,16 @@ namespace BDO.Enhancement.Stochastics.Policies
         private readonly int _targetGrade;
         private readonly Dictionary<int, int> _failstacks;
         private IEnumerable<IMarkovAction<EnhancementState>> _actions;
+        private Data.EnhancementInfo[] _info;
 
         public TieredFailstackPolicy(string item, int targetGrade, Dictionary<int, int> failstacks)
         {
             _targetGrade = targetGrade;
             _failstacks = failstacks;
             _item = item;
+            _info = new Data.EnhancementInfo[5];
+            for (var grade = 0; grade < targetGrade; ++grade)
+                _info[grade] = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade));
         }
 
         public bool StopAtOnce { get; set; } = true;
@@ -39,10 +43,25 @@ namespace BDO.Enhancement.Stochastics.Policies
             return list;
         }
 
-        private bool ApplyRestoreFailstack(EnhancementState state)
+        private int GetToGrade(EnhancementState state)
         {
-            var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-            var b = state.FailStack == 0 && toGrade >= _targetGrade - 1 && state.StoredFailstacks[_targetGrade - toGrade] > 0;
+            var toGrade = 0;
+            var items = state.Items;
+            for (var i = 0; i < _targetGrade; ++i)
+            {
+                if (items[i] > 0)
+                    toGrade = i + 1;
+            }
+
+            return toGrade;
+        }
+
+        private bool ApplyRestoreFailstack(EnhancementState state, int toGrade)
+        {
+            if (state.FailStack != 0)
+                return false;
+            // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+            var b = toGrade >= _targetGrade - 1 && state.StoredFailstacks[_targetGrade - toGrade] > 0;
             return b;
         }
 
@@ -52,11 +71,11 @@ namespace BDO.Enhancement.Stochastics.Policies
             return b;
         }
 
-        private bool ApplyFailstack(EnhancementState state)
+        private int ApplyFailstack(EnhancementState state, int toGrade)
         {
-            var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-            var b = state.FailStack < _failstacks[toGrade - 1];
-            return b;
+            // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+            // var b = state.FailStack < _failstacks[toGrade - 1];
+            return _failstacks[toGrade - 1] - state.FailStack;
         }
 
         public double this[IMarkovAction<EnhancementState> action, EnhancementState state]
@@ -68,12 +87,13 @@ namespace BDO.Enhancement.Stochastics.Policies
                 
                 if (state.Items[_targetGrade] > 0 && StopAtOnce)
                     return 0.0;
-                
-                var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+
+                var toGrade = GetToGrade(state);
+                // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
                 if (toGrade == 1 && state.Items[0] < 2)
                     return 0.0;
 
-                if (ApplyRestoreFailstack(state) && _actions.Any(a => a is RestoreFailstack))
+                if (ApplyRestoreFailstack(state, toGrade) && _actions.Any(a => a is RestoreFailstack))
                 {
                     if (action is RestoreFailstack restoreFailstack && restoreFailstack.Slot == _targetGrade - toGrade)
                     {
@@ -110,7 +130,7 @@ namespace BDO.Enhancement.Stochastics.Policies
                     return 0.0;
                 }
 
-                if (ApplyFailstack(state))
+                if (ApplyFailstack(state, toGrade) > 0)
                     return action is FailstackAction ? 1.0 : 0.0;
 
                 if (action is EnhancementAction enhancementAction) // && state.FailStack > 0)
@@ -129,12 +149,13 @@ namespace BDO.Enhancement.Stochastics.Policies
                 
                 if (state.Items[_targetGrade] > 0 && StopAtOnce)
                     return null;
-                
-                var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+
+                var toGrade = GetToGrade(state);
+                // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
                 if (toGrade == 1 && state.Items[0] < 2)
                     return null;
 
-                if (ApplyRestoreFailstack(state))
+                if (ApplyRestoreFailstack(state, toGrade))
                 {
                     var restoreFailstack = new RestoreFailstack(_targetGrade - toGrade);
                     if (Log != null)
@@ -162,10 +183,12 @@ namespace BDO.Enhancement.Stochastics.Policies
                     return storeFailstack;
                 }
 
-                if (ApplyFailstack(state))
-                    return new FailstackAction(); 
+                var failstack = ApplyFailstack(state, toGrade);
+                if (failstack > 0)
+                    return new FailstackAction(failstack); 
 
-                return new EnhancementAction(toGrade, _item);
+                // return new EnhancementAction(toGrade, _item);
+                return new EnhancementAction(toGrade, _info[toGrade - 1]);
             } 
             set => throw new System.NotImplementedException();
         }

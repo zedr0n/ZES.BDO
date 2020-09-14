@@ -149,7 +149,7 @@ namespace BDO.Tests
             var initialState = new EnhancementState(failstack);
             initialState.Items[targetGrade - 1] = int.MaxValue;
             var process = new NumberOfAttemptsProcess(targetGrade, initialState) { Log = null };
-            var policy = new JustEnhancePolicy(item, targetGrade);
+            var policy = new JustEnhancePolicy(item, targetGrade) { TrackNumberOfAttempts = true };
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Optimal value : {value}");
@@ -166,7 +166,7 @@ namespace BDO.Tests
             var targetGrade = 1;
             var failstack = 0;
             var process = new NumberOfAttemptsProcess(targetGrade, failstack) { Log = null };
-            var policy = new JustEnhancePolicy(item, targetGrade);
+            var policy = new JustEnhancePolicy(item, targetGrade) { TrackNumberOfAttempts = true };
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Optimal value : {value}");
@@ -210,42 +210,57 @@ namespace BDO.Tests
             
             var item = "Silver Embroidered";
             var targetGrade = 3;
-            var initialState = new EnhancementState()
+            // var quantities = Enumerable.Range(3, 3).Select(i => 10 * i);
+            // var quantities = new List<int> { 20, 24, 28, 32, 36, 40 };
+            var quantities = new List<int> { 16 };
+            // var quantities = new List<int> { 8, 12, 16, 24, 28, 32 };
+            
+            var probabilities = new Dictionary<(int, int, int, int), double>();
+            var costs = new Dictionary<(int, int, int, int), double>();
+            var efficiency = new Dictionary<(int, int, int, int), double>();
+            foreach (var quantity in quantities)
             {
-                Items = new []
+                var initialState = new EnhancementState()
                 {
-                    20,
-                    0,
-                    0,
-                    0,
-                    0,
-                },
-            };
-
-            var probabilities = new Dictionary<(int, int, int), double>();
-            var costs = new Dictionary<(int, int, int), double>();
-            var efficiency = new Dictionary<(int, int, int), double>();
-            for (var failstack0 = 10; failstack0 <= 10; ++failstack0)
-            {
-                for (var failstack1 = 30; failstack1 <= 30; ++failstack1)
-                {
-                    for(var failstack2 = 30; failstack2 <= 30; ++failstack2)
+                    Items = new []
                     {
-                        var key = (failstack0, failstack1, failstack2);
-                        var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
-                        var costProcess = new ExpectedCostProcess(initialState) { Log = null };
-
-                        var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
+                        quantity,
+                        0,
+                        0,
+                        0,
+                        0,
+                    },
+                    StoredFailstacks = new []
+                    {
+                        37,
+                        24,
+                        0,
+                    },
+                };
+                
+                for (var failstack0 = 5; failstack0 <= 10; ++failstack0)
+                {
+                    for (var failstack1 = 15; failstack1 <= 25; ++failstack1)
+                    {
+                        for(var failstack2 = 35; failstack2 <= 35; ++failstack2)
                         {
-                            {0, failstack0},
-                            {1, failstack1},
-                            {2, failstack2},
-                        });
+                            var key = (quantity, failstack0, failstack1, failstack2);
+                            var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
+                            var costProcess = new ExpectedCostProcess(initialState) { Log = null };
 
-                        probabilities[key] = process.GetOptimalValue(policy, 1e-6);
-                        costs[key] = -costProcess.GetOptimalValue(policy, 1);
-                        efficiency[key] = (int)(costs[key] / probabilities[key] / 100); 
-                        log.Info($"Enhancement probability for failstack = ({key}): {probabilities[key]} at {costs[key]}, efficiency : {efficiency[key]}");
+                            var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
+                            {
+                                {0, failstack0},
+                                {1, failstack1},
+                                {2, failstack2},
+                                {3, failstack2},
+                            }) { Log = null };
+
+                            probabilities[key] = process.GetOptimalValue(policy);
+                            costs[key] = -costProcess.GetOptimalValue(policy, 1);
+                            efficiency[key] = (int)(costs[key] / probabilities[key] / 100); 
+                            // log.Info($"Enhancement probability for failstack = ({key}): {probabilities[key]} at {costs[key]}, efficiency : {efficiency[key]}");
+                        }
                     }
                 }
             }
@@ -256,8 +271,8 @@ namespace BDO.Tests
                 if (!keys.Any())
                     continue;
                 var max = keys.Select(k => efficiency[k]).Min();
-                var key = efficiency.Single(e => e.Value == max).Key;
-                log.Info($"Most efficient for probability {probabilities[key]} : {key} at {max}");
+                var key = efficiency.First(e => e.Value == max).Key;
+                log.Info($"Most efficient for probability {probabilities[key]} : {key} at cost {max*100*probabilities[key]}");
             }
             
             // var max = probabilities.First(v => v.Value == probabilities.Max(s => s.Value));
@@ -300,7 +315,7 @@ namespace BDO.Tests
             var log = container.GetInstance<ILog>();
 
             var prevValue = 0.0;
-            for (var failstack = 1; failstack < 5; failstack++)
+            for (var failstack = 1; failstack < 31; failstack++)
             {
                 var initialState = new EnhancementState(0)
                 {
@@ -317,12 +332,12 @@ namespace BDO.Tests
                 var process = new ReblathCostProcess(failstack, initialState);
                 var policy = new ReblathPolicy(failstack);
 
-                var value = process.GetOptimalValue(policy, 10); 
+                var value = process.GetOptimalValue(policy, 100); 
                 log.Info($"Failstack = {failstack} cost: {value - prevValue}");
                 prevValue = value;
             }
             
-            Assert.Equal(960271.01210672, prevValue);
+            Assert.Equal(2734185.1255891407, prevValue);
         }
 
         [Fact]
@@ -398,24 +413,25 @@ namespace BDO.Tests
             var item = "Silver Embroidered";
             var targetGrade = 3;
 
-            var minFailstack0 = 5;
-            var maxFailstack0 = 5;
+            var minFailstack0 = 10;
+            var maxFailstack0 = 10;
             
-            var minFailstack1 = 20;
-            var maxFailstack1 = 20;
+            var minFailstack1 = 0;
+            var maxFailstack1 = 25;
             
-            var minFailstack2 = 25;
-            var maxFailstack2 = 25;
+            var minFailstack2 = 0;
+            var maxFailstack2 = 35;
+            
+            var dict = new Dictionary<(int, int, int), double>();
 
-            var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
+            var quantities = Enumerable.Range(1, 10).Select(i => 10 * i);
             foreach (var quantity in quantities)
             {
+                var prevMax0 = double.MinValue;
                 for (var failstack0 = minFailstack0; failstack0 <= maxFailstack0; failstack0++)
                 {
                     for (var failstack2 = minFailstack2; failstack2 <= maxFailstack2; ++failstack2)
                     {
-                        var prevValue = 0.0;
-                        var values = new List<double>();
                         for (var failstack1 = minFailstack1; failstack1 <= maxFailstack1; ++failstack1)
                         {
                             var initialState = new EnhancementState(0)
@@ -438,19 +454,26 @@ namespace BDO.Tests
                                 {3, failstack2},
                             });
                             policy.StopAtOnce = false;
-                            // policy.Log = log;
-                            //var policy = new JustEnhancePolicy(item, targetGrade);
 
                             var value = process.GetOptimalValue(policy, 1000);
-                            if (prevValue > value)
+                            dict[(failstack0, failstack1, failstack2)] = value / quantity;
+                            if (failstack1 > 0 && dict[(failstack0, failstack1 - 1, failstack2)] > value / quantity)
                                 break;
-                            values.Add(value);
                             // log.Info($"Expected profit for failstack=({failstack0},{failstack1},{failstack2}) : {value}");
-                    
                         }
-                        log.Info($"Expected profit from {quantity} items for +2 failstack={failstack2} and +0 failstack={failstack0} : {values.Max()}, per unit : {values.Max()/quantity} at +1 failstack={minFailstack1 + values.IndexOf(values.Max())}");
+                        // log.Info($"Expected profit from {quantity} items for +2 failstack={failstack2} and +0 failstack={failstack0} : {values.Max()}, per unit : {values.Max()/quantity} at +1 failstack={minFailstack1 + values.IndexOf(values.Max())}");
                     }
+                    var max0 = dict.Where(v => v.Key.Item1 == failstack0).Max(v => v.Value);
+                    var key0 = dict.Single(v => v.Value == max0).Key;
+                    log.Info($"Expected profit from {quantity} items for failstack {key0} : {max0*quantity}, per unit : {max0}");
+                    if (prevMax0 > max0)
+                        break;
+                    prevMax0 = max0;
                 }
+
+                // var max = dict.Max(v => v.Value);
+                // var key = dict.Single(v => v.Value == max).Key;
+                // log.Info($"Expected profit from {quantity} items for failstack {key} : {max*quantity}, per unit : {max}");
             }
         }            
     }

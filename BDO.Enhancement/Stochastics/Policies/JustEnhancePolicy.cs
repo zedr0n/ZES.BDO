@@ -16,6 +16,8 @@ namespace BDO.Enhancement.Stochastics.Policies
             _item = item;
         }
 
+        public bool TrackNumberOfAttempts { get; set; } = false;
+
         /// <inheritdoc />
         public IEnumerable<IMarkovAction<EnhancementState>> GetAllowedActions()
         {
@@ -53,7 +55,7 @@ namespace BDO.Enhancement.Stochastics.Policies
                 
                 var grade = state.Items.ToList().FindLastIndex(i => i > 0) + 1;
                 
-                return new EnhancementAction(grade, _item);
+                return new EnhancementAction(grade, _item) { TrackNumberOfAttempts = TrackNumberOfAttempts};
             }
             set => throw new System.NotImplementedException();
         }

@@ -16,14 +16,19 @@ namespace BDO.Enhancement.Stochastics.Actions
 
         public override double this[EnhancementState @from, EnhancementState to] => 1.0;
 
-        public override IEnumerable<EnhancementState> this[EnhancementState current] => new List<EnhancementState>
+        protected override EnhancementState[] GetStates(EnhancementState current)
         {
-           current.Clone(s =>
-           {
-               s.StoredFailstacks[_slot] = s.FailStack;
-               s.FailStack = 0;
-               s.JustFailedGrade = -1;
-           }), 
-        };
+            return new[]
+            {
+                current.Clone(s =>
+                {
+                    s.StoredFailstacks[_slot] = s.FailStack;
+                    s.FailStack = 0;
+                    s.JustFailedGrade = -1;
+                }),
+            };
+        }
+
+        public override IEnumerable<EnhancementState> this[EnhancementState current] => GetStates(current);
     }
 }

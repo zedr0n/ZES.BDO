@@ -3,7 +3,7 @@
      <PropertyGroup>
         <TargetFramework>netcoreapp2.2</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
-        <Configurations>Debug;Release;DebugLocal</Configurations>
+        <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
@@ -46,7 +46,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.575" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.576" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>

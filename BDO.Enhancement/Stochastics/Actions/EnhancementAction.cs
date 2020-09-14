@@ -8,6 +8,8 @@ namespace BDO.Enhancement.Stochastics.Actions
     /// <inheritdoc />
     public class EnhancementAction : MarkovActionBase<EnhancementState>
     {
+        private Dictionary<EnhancementState, IEnumerable<EnhancementState>> _nextStates = new Dictionary<EnhancementState, IEnumerable<EnhancementState>>();
+        
         public EnhancementAction(int grade, string item)
         {
             Grade = grade;
@@ -47,43 +49,53 @@ namespace BDO.Enhancement.Stochastics.Actions
             }
         }
 
+        protected override EnhancementState[] GetStates(EnhancementState current)
+        {
+            return new[]
+            {
+                current.Clone(s =>
+                {
+                    s.Items[Grade]++;
+                    s.Items[Grade - 1]--;
+                    if (_info.ItemLoss > 0)
+                        s.Items[0] -= _info.ItemLoss;
+
+                    if (TrackNumberOfAttempts)
+                        s.NumberOfAttempts++;
+                    s.FailStack = 0;
+                    s.JustFailedGrade = -1;
+                }),
+                current.Clone(s =>
+                {
+                    if (_info.ItemLoss > 0)
+                    {
+                        s.Items[Grade - 1] -= _info.ItemLoss;
+                        s.Items[0] -= _info.ItemLoss;
+                    }
+
+                    s.FailStack++;
+                    if (TrackNumberOfAttempts)
+                        s.NumberOfAttempts++;
+                    s.JustFailedGrade = Grade;
+                }),
+            };
+        }
+
         public override IEnumerable<EnhancementState> this[EnhancementState current]
         {
             get
             {
-                if (current.Items[Grade - 1] > 0)
-                {
-                    return new[] 
-                        {
-                            current.Clone(s =>
-                            {
-                                s.Items[Grade]++;
-                                s.Items[Grade - 1]--;
-                                if (_info.ItemLoss > 0)
-                                    s.Items[0] -= _info.ItemLoss;
-                                
-                                if (TrackNumberOfAttempts)
-                                    s.NumberOfAttempts++;
-                                s.FailStack = 0;
-                                s.JustFailedGrade = -1;
-                            }),
-                            current.Clone(s =>
-                            {
-                                if (_info.ItemLoss > 0)
-                                {
-                                    s.Items[Grade - 1] -= _info.ItemLoss;
-                                    s.Items[0] -= _info.ItemLoss;
-                                }
-                                
-                                s.FailStack++;
-                                if (TrackNumberOfAttempts)
-                                    s.NumberOfAttempts++;
-                                s.JustFailedGrade = Grade;
-                            }),
-                        };
-                }
+                if (current.Items[Grade - 1] <= 0) 
+                    return new List<EnhancementState>();
+
+                return base[current];
+
+                // return GetStates(current);
                 
-                return new List<EnhancementState>();
+                if (!_nextStates.ContainsKey(current))
+                    _nextStates[current] = GetStates(current);
+                
+                return _nextStates[current];
             }
         } 
         

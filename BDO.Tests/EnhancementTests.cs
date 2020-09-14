@@ -315,7 +315,7 @@ namespace BDO.Tests
             var log = container.GetInstance<ILog>();
 
             var prevValue = 0.0;
-            for (var failstack = 1; failstack < 31; failstack++)
+            for (var failstack = 1; failstack < 11; failstack++)
             {
                 var initialState = new EnhancementState(0)
                 {
@@ -416,15 +416,15 @@ namespace BDO.Tests
             var minFailstack0 = 10;
             var maxFailstack0 = 10;
             
-            var minFailstack1 = 0;
+            var minFailstack1 = 15;
             var maxFailstack1 = 25;
             
-            var minFailstack2 = 0;
+            var minFailstack2 = 25;
             var maxFailstack2 = 35;
             
             var dict = new Dictionary<(int, int, int), double>();
 
-            var quantities = Enumerable.Range(1, 10).Select(i => 10 * i);
+            var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
             foreach (var quantity in quantities)
             {
                 var prevMax0 = double.MinValue;
@@ -457,7 +457,7 @@ namespace BDO.Tests
 
                             var value = process.GetOptimalValue(policy, 1000);
                             dict[(failstack0, failstack1, failstack2)] = value / quantity;
-                            if (failstack1 > 0 && dict[(failstack0, failstack1 - 1, failstack2)] > value / quantity)
+                            if (failstack1 > minFailstack1 && dict[(failstack0, failstack1 - 1, failstack2)] > value / quantity)
                                 break;
                             // log.Info($"Expected profit for failstack=({failstack0},{failstack1},{failstack2}) : {value}");
                         }

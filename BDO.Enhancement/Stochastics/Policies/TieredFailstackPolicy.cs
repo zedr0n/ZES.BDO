@@ -13,17 +13,20 @@ namespace BDO.Enhancement.Stochastics.Policies
         private readonly string _item;
         private readonly int _targetGrade;
         private readonly Dictionary<int, int> _failstacks;
+        private readonly EnhancementAction[] _enhancementActions;
         private IEnumerable<IMarkovAction<EnhancementState>> _actions;
-        private Data.EnhancementInfo[] _info;
 
         public TieredFailstackPolicy(string item, int targetGrade, Dictionary<int, int> failstacks)
         {
             _targetGrade = targetGrade;
             _failstacks = failstacks;
             _item = item;
-            _info = new Data.EnhancementInfo[5];
-            for (var grade = 0; grade < targetGrade; ++grade)
-                _info[grade] = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade));
+            _enhancementActions = new EnhancementAction[targetGrade + 1]; 
+            for (var grade = 1; grade <= targetGrade; ++grade)
+            {
+                var info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade - 1)); 
+                _enhancementActions[grade] = new EnhancementAction(grade, info);
+            }
         }
 
         public bool StopAtOnce { get; set; } = true;
@@ -188,7 +191,8 @@ namespace BDO.Enhancement.Stochastics.Policies
                     return new FailstackAction(failstack); 
 
                 // return new EnhancementAction(toGrade, _item);
-                return new EnhancementAction(toGrade, _info[toGrade - 1]);
+                return _enhancementActions[toGrade];
+                // return new EnhancementAction(toGrade, _info[toGrade - 1]);
             } 
             set => throw new System.NotImplementedException();
         }

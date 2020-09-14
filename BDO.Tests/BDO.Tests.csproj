@@ -4,7 +4,7 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <IsPackable>false</IsPackable>
-        <Configurations>Debug;Release;DebugLocal</Configurations>
+        <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
@@ -41,8 +41,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.575" />
-                <PackageReference Include="ZES.Tests" Version="1.0.575" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.576" />
+                <PackageReference Include="ZES.Tests" Version="1.0.576" />
             </ItemGroup>
         </Otherwise>
     </Choose>

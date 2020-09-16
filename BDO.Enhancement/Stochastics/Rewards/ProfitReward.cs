@@ -12,9 +12,11 @@ namespace BDO.Enhancement.Stochastics.Rewards
             {0, 400000},
             {1, 3400000},
             {2, 15400000},
-            {3, 145000000},
-            {4, 885000000},
+            {3, 157000000 * 0.85},
+            {4, 885000000 * 0.85},
         };
+
+        private readonly double _cost = 80 * 1240;
 
         public ProfitReward(int targetGrade)
         {
@@ -28,11 +30,11 @@ namespace BDO.Enhancement.Stochastics.Rewards
                 if (action[from, to] == 0)
                     return 0.0;
 
-                var profit = 0.0;
+                var profit = -_cost;
                 //var profit = -_values[0];    // one zero grade item to enhance
 
                 if (to.Items[action.Grade] == from.Items[action.Grade]) // failure
-                    profit -= 0;
+                    profit += action.Grade == 1 ? -_cost : 0.0;
                     //profit -= action.Grade == 1 ? _values[0] : 0.0;
                     // profit -= _values[action.Grade - 1];
                 else if (to.Items[_targetGrade] - from.Items[_targetGrade] == 1)

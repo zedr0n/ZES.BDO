@@ -16,7 +16,7 @@ namespace BDO.Enhancement.Stochastics
         
         public EnhancementState(int failStack = 0)
         {
-            _items = new[] { int.MaxValue, 0, 0, 0, 0, 0};
+            _items = new[] { int.MaxValue, 0, 0, 0, 0, 0 };
             _storedFailstacks = new[] { 0, 0, 0 };
             NumberOfAttempts = 0;
             FailStack = failStack;

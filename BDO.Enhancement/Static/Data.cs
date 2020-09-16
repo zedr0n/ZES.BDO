@@ -89,6 +89,54 @@ namespace BDO.Enhancement.Static
                 SoftCap = 0.3,
                 SoftCapIncrease = 0.0002,
             },
+            new EnhancementInfo("Boss", 0)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.1176,
+                BaseIncrease = 0.0118,
+                SoftCap = 0.7,
+                SoftCapIncrease = 0.0024,
+                NumberOfStacks = 2,
+            },
+            new EnhancementInfo("Boss", 1)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.0769,
+                BaseIncrease = 0.0077,
+                SoftCap = 0.7,
+                SoftCapIncrease = 0.0016,
+                NumberOfStacks = 3,
+            },
+            new EnhancementInfo("Boss", 2)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.0625,
+                BaseIncrease = 0.0063,
+                SoftCap = 0.7,
+                SoftCapIncrease = 0.0012,
+                NumberOfStacks = 4,
+                DropEnhancementGrade = true,
+            },
+            new EnhancementInfo("Boss", 3)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.02,
+                BaseIncrease = 0.0020,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.0002,
+                NumberOfStacks = 5,
+                DropEnhancementGrade = true,
+            },
+            new EnhancementInfo("Boss", 4)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.003,
+                BaseIncrease = 0.0003,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.00003,
+                NumberOfStacks = 6,
+                DropEnhancementGrade = true,
+            },
         };
         
         public class EnhancementInfo
@@ -99,6 +147,8 @@ namespace BDO.Enhancement.Static
                 Grade = grade;
             }
 
+            public bool DropEnhancementGrade { get; set; } = false;
+            public int NumberOfStacks { get; set; } = 1;
             public string Name { get; }
             public int Grade { get; }
             public int ItemLoss { get; set; } = 1;

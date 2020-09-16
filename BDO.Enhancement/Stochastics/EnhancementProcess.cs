@@ -11,7 +11,7 @@ namespace BDO.Enhancement.Stochastics
         /// </summary>
         /// <param name="initialState">Starting state</param>
         public EnhancementProcess(EnhancementState initialState)
-            : base(initialState, 1000)
+            : base(initialState, 1000000)
         {
         }
 

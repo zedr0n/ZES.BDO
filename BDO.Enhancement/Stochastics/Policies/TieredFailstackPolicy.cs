@@ -64,7 +64,7 @@ namespace BDO.Enhancement.Stochastics.Policies
             if (state.FailStack != 0)
                 return false;
             // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-            var b = toGrade >= _targetGrade - 1 && state.StoredFailstacks[_targetGrade - toGrade] > 0;
+            var b = toGrade >= 2 && state.StoredFailstacks[_targetGrade - toGrade] > 0;
             return b;
         }
 

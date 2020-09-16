@@ -73,7 +73,13 @@ namespace BDO.Enhancement.Stochastics.Actions
                         s.Items[0] -= _info.ItemLoss;
                     }
 
-                    s.FailStack++;
+                    if (_info.DropEnhancementGrade)
+                    {
+                        s.Items[Grade - 1]--;
+                        s.Items[Grade - 2]++;
+                    }
+
+                    s.FailStack += _info.NumberOfStacks;
                     if (TrackNumberOfAttempts)
                         s.NumberOfAttempts++;
                     s.JustFailedGrade = Grade;

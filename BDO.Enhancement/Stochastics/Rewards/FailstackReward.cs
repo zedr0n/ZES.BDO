@@ -6,6 +6,59 @@ namespace BDO.Enhancement.Stochastics.Rewards
 {
     public class FailstackReward : ActionReward<EnhancementState, FailstackAction>
     {
+        private readonly bool _invert;
+        
+        public FailstackReward(bool invert = true)
+        {
+            _invert = invert;
+        }
+        
+        // shoes
+        private Dictionary<int, double> _shoesCosts = new Dictionary<int, double>
+        {
+            { 1, 223423 },
+            { 2, 229567 },
+            { 3, 236817 },
+            { 4, 245251 },
+            { 5, 254957 },
+            { 6, 266037 },
+            { 7, 278609 },
+            { 8, 292807 },
+            { 9, 308782 },
+            { 10, 326710 },
+            { 11, 346789 },
+            { 12, 369242 },
+            { 13, 394326 },
+            { 14, 422332 },
+            { 15, 453589 },
+            { 16, 488476 },
+            { 17, 527419 },
+            { 18, 570907 },
+            { 19, 619497 },
+            { 20, 673825 },
+            { 21, 734617 },
+            { 22, 802705 },
+            { 23, 879042 },
+            { 24, 964722 },
+            { 25, 1061000 },
+            { 26, 1169321 },
+            { 27, 1291350 },
+            { 28, 1429005 },
+            { 29, 1584504 },
+            { 30, 1760406 },
+            { 31, 1959657 },
+            { 32, 2185608 },
+            { 33, 2441972 },
+            { 34, 2732648 },
+            { 35, 3061320 },
+            { 36, 3430792 },
+            { 37, 3842045 },
+            { 38, 4293162 },
+            { 39, 4778340 },
+            { 40, 5287282 },
+        };
+        
+        // armor
         private Dictionary<int, double> _costs = new Dictionary<int, double>
         {
             { 0, 0 },
@@ -62,10 +115,13 @@ namespace BDO.Enhancement.Stochastics.Rewards
                 var cost = 0.0;
                 for (var failstack = from.FailStack + 1; failstack <= to.FailStack; failstack++)
                 {
-                    cost += _costs[failstack];
+                    cost += _shoesCosts[failstack];
                 }
 
-                return -cost;
+                if (_invert)
+                    cost *= -1;
+                
+                return cost;
                 //return _costs[from.FailStack] - _costs[to.FailStack];
             }
         }

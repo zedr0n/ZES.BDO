@@ -8,16 +8,13 @@ namespace BDO.Enhancement.Stochastics
     [DebuggerDisplay("{DebuggerDisplay}, {NumberOfAttempts}, {FailStack}")]
     public class EnhancementState : IMarkovState, IEquatable<EnhancementState>
     {
-        private static int _itemsSize = sizeof(int) * 5;
-        private static int _storedFailstacksSize = sizeof(int) * 2;
-
         private int[] _items;
         private int[] _storedFailstacks;
         
         public EnhancementState(int failStack = 0)
         {
             _items = new[] { int.MaxValue, 0, 0, 0, 0, 0 };
-            _storedFailstacks = new[] { 0, 0, 0 };
+            _storedFailstacks = new[] { 0, 0, 0, 0 };
             NumberOfAttempts = 0;
             FailStack = failStack;
             JustFailedGrade = -1;
@@ -26,7 +23,7 @@ namespace BDO.Enhancement.Stochastics
         public EnhancementState(ref int[] items, ref int[] storedFailstacks)
         {
             _items = new int[6];
-            _storedFailstacks = new int[3];
+            _storedFailstacks = new int[4];
             items.CopyTo(_items, 0);
             storedFailstacks.CopyTo(_storedFailstacks, 0);
             // Buffer.BlockCopy(items, 0, _items, 0, _itemsSize);
@@ -92,6 +89,7 @@ namespace BDO.Enhancement.Stochastics
             b &= StoredFailstacks[0] == other.StoredFailstacks[0];
             b &= StoredFailstacks[1] == other.StoredFailstacks[1];
             b &= StoredFailstacks[2] == other.StoredFailstacks[2];
+            b &= StoredFailstacks[3] == other.StoredFailstacks[3];
             
             return b && NumberOfAttempts == other.NumberOfAttempts && FailStack == other.FailStack && JustFailedGrade == other.JustFailedGrade;
         }
@@ -119,6 +117,7 @@ namespace BDO.Enhancement.Stochastics
                 hashCode = (hashCode * 397) ^ StoredFailstacks[0].GetHashCode();
                 hashCode = (hashCode * 397) ^ StoredFailstacks[1].GetHashCode();
                 hashCode = (hashCode * 397) ^ StoredFailstacks[2].GetHashCode();
+                hashCode = (hashCode * 397) ^ StoredFailstacks[3].GetHashCode();
                 hashCode = (hashCode * 397) ^ NumberOfAttempts;
                 hashCode = (hashCode * 397) ^ FailStack;
                 hashCode = (hashCode * 397) ^ JustFailedGrade;

@@ -31,6 +31,6 @@ namespace BDO.Enhancement.Stochastics.Actions
             };
         }
 
-        public override IEnumerable<EnhancementState> this[EnhancementState current] => GetStates(current);
+        // public override IEnumerable<EnhancementState> this[EnhancementState current] => GetStates(current);
     }
 }

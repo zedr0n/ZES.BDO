@@ -44,6 +44,10 @@ namespace BDO.Enhancement.Stochastics.Policies
                     return new SellAction(_sellGrade);
 
                 var toGrade = GetToGrade(state);
+                
+                if (state.Items[toGrade - 1] == 0)
+                    return new AddItemAtGradeAction(toGrade - 1);
+                
                 if (state.FailStack < _minFailstack)
                     return new FailstackAction(_minFailstack - state.FailStack);
                 

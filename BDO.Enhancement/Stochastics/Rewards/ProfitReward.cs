@@ -34,7 +34,7 @@ namespace BDO.Enhancement.Stochastics.Rewards
                 //var profit = -_values[0];    // one zero grade item to enhance
 
                 if (to.Items[action.Grade] == from.Items[action.Grade]) // failure
-                    profit += action.Grade == 1 ? -_cost : 0.0;
+                    profit += 0.0; //action.Grade == 1 ? -_cost : 0.0;
                     //profit -= action.Grade == 1 ? _values[0] : 0.0;
                     // profit -= _values[action.Grade - 1];
                 else if (to.Items[_targetGrade] - from.Items[_targetGrade] == 1)

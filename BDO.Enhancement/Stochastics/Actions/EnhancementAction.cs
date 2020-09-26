@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using BDO.Enhancement.Static;
 using ZES.Infrastructure.Stochastics;
@@ -9,17 +10,22 @@ namespace BDO.Enhancement.Stochastics.Actions
     public class EnhancementAction : MarkovActionBase<EnhancementState>
     {
         private Dictionary<EnhancementState, IEnumerable<EnhancementState>> _nextStates = new Dictionary<EnhancementState, IEnumerable<EnhancementState>>();
+        private double[] _chances;
+
+        private const int MAX_FAILSTACK = 100;
         
         public EnhancementAction(int grade, string item)
+            : this(grade, Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade - 1)))
         {
-            Grade = grade;
-            _info = Data.EnhancementInfos.SingleOrDefault(i => i.IsFor(item, grade - 1));
         }
 
         public EnhancementAction(int grade, Data.EnhancementInfo info)
         {
             Grade = grade;
             _info = info;
+            _chances = new double[MAX_FAILSTACK];
+            for (var i = 0; i < MAX_FAILSTACK; ++i)
+                _chances[i] = GetChance(i);
         }
 
         public bool TrackNumberOfAttempts { get; set; } = false;
@@ -42,7 +48,8 @@ namespace BDO.Enhancement.Stochastics.Actions
                 if (base[from, to] == 0)
                     return 0.0;*/
 
-                var chance = GetChance(from.FailStack);
+                // var chance = GetChance(from.FailStack);
+                var chance = _chances[from.FailStack];
                 if (to.Items[Grade] == from.Items[Grade]) // failure
                     return 1.0 - chance;
                 return chance;

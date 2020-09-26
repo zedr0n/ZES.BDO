@@ -26,8 +26,6 @@ namespace BDO.Enhancement.Stochastics
             _storedFailstacks = new int[4];
             items.CopyTo(_items, 0);
             storedFailstacks.CopyTo(_storedFailstacks, 0);
-            // Buffer.BlockCopy(items, 0, _items, 0, _itemsSize);
-            // Buffer.BlockCopy(storedFailstacks, 0, _storedFailstacks, 0, _storedFailstacksSize);
             NumberOfAttempts = 0;
             FailStack = 0;
             JustFailedGrade = -1;
@@ -111,16 +109,14 @@ namespace BDO.Enhancement.Stochastics
         {
             unchecked
             {
-                var hashCode = 0;
+                var hashCode = (int)2166136261;
                 foreach (var i in Items)
-                    hashCode = (hashCode * 397) ^ i.GetHashCode();
-                hashCode = (hashCode * 397) ^ StoredFailstacks[0].GetHashCode();
-                hashCode = (hashCode * 397) ^ StoredFailstacks[1].GetHashCode();
-                hashCode = (hashCode * 397) ^ StoredFailstacks[2].GetHashCode();
-                hashCode = (hashCode * 397) ^ StoredFailstacks[3].GetHashCode();
-                hashCode = (hashCode * 397) ^ NumberOfAttempts;
-                hashCode = (hashCode * 397) ^ FailStack;
-                hashCode = (hashCode * 397) ^ JustFailedGrade;
+                    hashCode = (hashCode * 16777619) ^ i;
+                foreach (var i in StoredFailstacks)
+                    hashCode = (hashCode * 16777619) ^ i;
+                hashCode = (hashCode * 16777619) ^ NumberOfAttempts;
+                hashCode = (hashCode * 16777619) ^ FailStack;
+                hashCode = (hashCode * 16777619) ^ JustFailedGrade;
                 return hashCode;
             }
         }

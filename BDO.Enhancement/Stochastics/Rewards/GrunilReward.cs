@@ -5,18 +5,16 @@ namespace BDO.Enhancement.Stochastics.Rewards
 {
     public class GrunilReward : ActionReward<EnhancementState, EnhancementAction>
     {
-        private int _targetFailstack;
         private const double _cost = 2100000;
         
         // armor
         // private const double _repairCost = 25000 / 10 * 5;
         // shoes
-        private const double _armorCost = 58500 / 10 * 5;
+        private const double _armorCost = 121000 / 10 * 5;
         private const double _helmetCost = 421000 / 10 * 5;
         
-        public GrunilReward(int targetFailstack)
+        public GrunilReward()
         {
-            _targetFailstack = targetFailstack;
         }
         
         public override double this[EnhancementState @from, EnhancementState to, EnhancementAction action]

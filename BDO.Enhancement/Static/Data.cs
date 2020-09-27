@@ -11,6 +11,46 @@ namespace BDO.Enhancement.Static
         
         public static List<EnhancementInfo> EnhancementInfos { get; } = new List<EnhancementInfo>
         {
+            new EnhancementInfo("Matchlock", 0)
+            {
+              BaseChance = 0.72,
+              BaseIncrease = 0.0134,
+              SoftCap = 0.7,
+              SoftCapIncrease = 0.0134,
+              ItemLoss = 0,
+            },
+            new EnhancementInfo("Matchlock", 1)
+            {
+              BaseChance = 0.4445,
+              BaseIncrease = 0.0444,
+              SoftCap = 0.7,
+              SoftCapIncrease = 0.00888,
+              ItemLoss = 0,
+            },
+            new EnhancementInfo("Matchlock", 2)
+            {
+              BaseChance = 0.2962,
+              BaseIncrease = 0.0297,
+              SoftCap = 0.7,
+              SoftCapIncrease = 0.00594,
+              ItemLoss = 0,
+            },
+            new EnhancementInfo("Matchlock", 3)
+            {
+              BaseChance = 0.1967,
+              BaseIncrease = 0.0197,
+              SoftCap = 0.7,
+              SoftCapIncrease = 0.00394,
+              ItemLoss = 0,
+            },
+            new EnhancementInfo("Matchlock", 4)
+            {
+              BaseChance = 0.1318,
+              BaseIncrease = 0.0131,
+              SoftCap = 0.7,
+              SoftCapIncrease = 0.00262,
+              ItemLoss = 0,
+            },
             new EnhancementInfo("Silver Embroidered", 0)
             {
                 BaseChance = 0.3,

@@ -8,6 +8,7 @@ namespace BDO.Enhancement.Static
     public static class Data
     {
         public static int EnhancementBonus = 1;
+        public static double ArmorStonePrice = 210000;
         
         public static List<EnhancementInfo> EnhancementInfos { get; } = new List<EnhancementInfo>
         {
@@ -57,6 +58,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.03,
                 SoftCap = 0.7,
                 SoftCapIncrease = 0.006,
+                Price = 400000,
+                Cost = 80 * 1240,
             },
             new EnhancementInfo("Silver Embroidered", 1)
             {
@@ -64,6 +67,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.01,
                 SoftCap = 0.5,
                 SoftCapIncrease = 0.002,
+                Price = 3400000, 
+                Cost = 80 * 1240,
             },
             new EnhancementInfo("Silver Embroidered", 2)
             {
@@ -71,6 +76,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0075,
                 SoftCap = 0.4,
                 SoftCapIncrease = 0.0015,
+                Price = 15400000, 
+                Cost = 80 * 1240,
             },
             new EnhancementInfo("Silver Embroidered", 3)
             {
@@ -78,6 +85,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0025,
                 SoftCap = 0.3,
                 SoftCapIncrease = 0.0005,
+                Price = 157000000,
+                Cost = 80 * 1240,
             },
             new EnhancementInfo("Silver Embroidered", 4)
             {
@@ -85,6 +94,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0005,
                 SoftCap = 0.2,
                 SoftCapIncrease = 0.0002,
+                Price = 885000000, 
+                Cost = 80 * 1240,
             },
             new EnhancementInfo("Gold accessory", 0)
             {
@@ -128,6 +139,36 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.002,
                 SoftCap = 0.3,
                 SoftCapIncrease = 0.0002,
+            },
+            new EnhancementInfo("Reblath", 0)
+            {
+                ArmorStone = 1,
+            },
+            new EnhancementInfo("Reblath", 1)
+            {
+                ArmorStone = 1,
+            },
+            new EnhancementInfo("Reblath", 2)
+            {
+                ArmorStone = 1,
+            },
+            new EnhancementInfo("Reblath", 3)
+            {
+                ArmorStone = 1,
+            },
+            new EnhancementInfo("Reblath", 4)
+            {
+                ItemLoss = 0,
+                BaseChance = 0.02,
+                BaseIncrease = 0.002,
+                SoftCap = 0.3,
+                SoftCapIncrease = 0.0002,
+                ArmorStone = 1,
+                RepairCost = 12900 / 10 * 5,
+            },
+            new EnhancementInfo("Reblath", 5)
+            {
+                ArmorStone = 1,
             },
             new EnhancementInfo("Boss", 0)
             {
@@ -187,6 +228,10 @@ namespace BDO.Enhancement.Static
                 Grade = grade;
             }
 
+            public int ArmorStone { get; set; }
+            public double RepairCost { get; set; }
+            public double Cost { get; set; }
+            public double Price { get; set; }
             public bool DropEnhancementGrade { get; set; } = false;
             public int NumberOfStacks { get; set; } = 1;
             public string Name { get; }

@@ -6,7 +6,7 @@ namespace BDO.Enhancement.Stochastics.Policies
 {
     public class ReblathPolicy : IPolicy<EnhancementState>, IDeterministicPolicy<EnhancementState>
     {
-        private readonly string _item = "Armor";
+        private readonly string _item = "Reblath";
         private readonly int _targetFailstack;
 
         public ReblathPolicy(int targetFailstack)

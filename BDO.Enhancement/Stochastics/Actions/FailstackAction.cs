@@ -13,8 +13,10 @@ namespace BDO.Enhancement.Stochastics.Actions
             _amount = amount;
         }
 
+        /// <inheritdoc/>
         public override double this[EnhancementState @from, EnhancementState to] => 1.0;
 
+        /// <inheritdoc/>
         protected override EnhancementState[] GetStates(EnhancementState current)
         {
             return new[]

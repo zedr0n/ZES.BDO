@@ -1,3 +1,5 @@
+using System.Linq;
+using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics.Actions;
 using ZES.Infrastructure.Stochastics;
 
@@ -5,17 +7,14 @@ namespace BDO.Enhancement.Stochastics.Rewards
 {
     public class ReblathReward : ActionReward<EnhancementState, EnhancementAction>
     {
-        private int _targetFailstack;
-        private const double _cost = 210000;
+        private readonly double _cost;
+        private readonly double _repairCost;
         
-        // armor
-        // private const double _repairCost = 25000 / 10 * 5;
-        // shoes
-        private const double _repairCost = 12900 / 10 * 5;
-        
-        public ReblathReward(int targetFailstack)
+        public ReblathReward()
         {
-            
+            var info = Data.EnhancementInfos.Single(i => i.IsFor("Reblath", 4));
+            _cost = Data.ArmorStonePrice * info.ArmorStone;
+            _repairCost = info.RepairCost;
         }
         
         public override double this[EnhancementState @from, EnhancementState to, EnhancementAction action]

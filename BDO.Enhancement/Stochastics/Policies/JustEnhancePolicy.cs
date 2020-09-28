@@ -16,6 +16,7 @@ namespace BDO.Enhancement.Stochastics.Policies
             _item = item;
         }
 
+        public bool StopAtOnce { get; set; } = true;
         public bool TrackNumberOfAttempts { get; set; } = false;
 
         /// <inheritdoc />
@@ -34,10 +35,10 @@ namespace BDO.Enhancement.Stochastics.Policies
                 if (state.Items[0] <= 0)
                     return 0.0;
                 
-                if (state.Items[_targetGrade] > 0)
+                if (state.Items[_targetGrade] > 0 && StopAtOnce)
                     return 0.0;
                 
-                var grade = state.Items.ToList().FindLastIndex(i => i > 0) + 1;
+                var grade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
 
                 if (action is EnhancementAction enhancementAction) // && state.FailStack > 0)
                     return enhancementAction.Grade == grade ? 1.0 : 0.0;
@@ -50,12 +51,12 @@ namespace BDO.Enhancement.Stochastics.Policies
         {
             get
             {
-                if (state.Items[0] <= 0 || state.Items[_targetGrade] > 0)
+                if (state.Items[0] <= 0 || (state.Items[_targetGrade] > 0 && StopAtOnce))
                     return null;
                 
-                var grade = state.Items.ToList().FindLastIndex(i => i > 0) + 1;
+                var grade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
                 
-                return new EnhancementAction(grade, _item) { TrackNumberOfAttempts = TrackNumberOfAttempts};
+                return new EnhancementAction(grade, _item) { TrackNumberOfAttempts = TrackNumberOfAttempts };
             }
             set => throw new System.NotImplementedException();
         }

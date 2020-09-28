@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics.Actions;
 using ZES.Infrastructure.Stochastics;
 
@@ -6,21 +7,17 @@ namespace BDO.Enhancement.Stochastics.Rewards
 {
     public class ProfitReward : ActionReward<EnhancementState, EnhancementAction>
     {
-        private int _targetGrade = 0;
-        private Dictionary<int, double> _values = new Dictionary<int, double>
-        {
-            {0, 400000},
-            {1, 3400000},
-            {2, 15400000},
-            {3, 157000000 * 0.85},
-            {4, 885000000 * 0.85},
-        };
+        private readonly int _targetGrade;
+        private readonly double _reward;
+        private readonly double _repairCost;
+        private readonly double _cost;
 
-        private readonly double _cost = 80 * 1240;
-
-        public ProfitReward(int targetGrade)
+        public ProfitReward(int targetGrade, Data.EnhancementInfo[] infos)
         {
             _targetGrade = targetGrade;
+            _reward = infos[targetGrade].Price * 0.85;
+            _repairCost = infos[0].RepairCost;
+            _cost = infos[0].Cost;
         }
         
         public override double this[EnhancementState @from, EnhancementState to, EnhancementAction action]
@@ -31,23 +28,10 @@ namespace BDO.Enhancement.Stochastics.Rewards
                     return 0.0;
 
                 var profit = -_cost;
-                //var profit = -_values[0];    // one zero grade item to enhance
-
-                if (to.Items[action.Grade] == from.Items[action.Grade]) // failure
-                    profit += 0.0; //action.Grade == 1 ? -_cost : 0.0;
-                    //profit -= action.Grade == 1 ? _values[0] : 0.0;
-                    // profit -= _values[action.Grade - 1];
-                else if (to.Items[_targetGrade] - from.Items[_targetGrade] == 1)
-                {
-                    profit += _values[_targetGrade];
-                    // for (var grade = 0; grade < _targetGrade; ++grade)
-                    //    profit += to.Items[grade] * _values[grade];
-                }
-                // else if (to.Items[0] == 0)
-                //    profit += _values[action.Grade];
-                //else 
-                //    profit += _values[action.Grade];
-                
+                if (to.Items[_targetGrade] - from.Items[_targetGrade] > 0)
+                    profit += _reward;
+                if (_repairCost != 0 && to.Items[action.Grade] == from.Items[action.Grade])
+                    profit -= _repairCost;
                 return profit;
             }
         }

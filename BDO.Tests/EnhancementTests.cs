@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 using BDO.Enhancement;
 using BDO.Enhancement.Commands;
 using BDO.Enhancement.Queries;
+using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics;
 using BDO.Enhancement.Stochastics.Policies;
+using BDO.Enhancement.Stochastics.Rewards;
 using NLog.Fluent;
 using Xunit;
 using Xunit.Abstractions;
@@ -154,7 +156,8 @@ namespace BDO.Tests
             var failstack = 36;
             var initialState = new EnhancementState(failstack);
             initialState.Items[targetGrade - 1] = int.MaxValue;
-            var process = new NumberOfAttemptsProcess(targetGrade, initialState) { Log = null };
+            var process = new EnhancementProcess(initialState)
+                {Rewards = new List<IActionReward<EnhancementState>> {new NumberOfAttemptsReward(targetGrade)}};
             var policy = new JustEnhancePolicy(item, targetGrade) { TrackNumberOfAttempts = true };
 
             var value = process.GetOptimalValue(policy); 
@@ -171,7 +174,9 @@ namespace BDO.Tests
             var item = "Gold accessory";
             var targetGrade = 1;
             var failstack = 0;
-            var process = new NumberOfAttemptsProcess(targetGrade, failstack) { Log = null };
+            var initialState = new EnhancementState(failstack);
+            var process = new EnhancementProcess(initialState)
+                {Rewards = new List<IActionReward<EnhancementState>> {new NumberOfAttemptsReward(targetGrade)}};
             var policy = new JustEnhancePolicy(item, targetGrade) { TrackNumberOfAttempts = true };
 
             var value = process.GetOptimalValue(policy); 
@@ -199,7 +204,7 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
+            var process = new EnhancementProcess(initialState) { Rewards = new List<IActionReward<EnhancementState>> { new SuccessProbabilityReward(targetGrade) }};
             var policy = new JustEnhancePolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy); 
@@ -319,8 +324,9 @@ namespace BDO.Tests
                     // log.Info($"({it.Quantity}:{string.Join(',', it.Failstacks)})"); 
                     
                     var key = (quantity, it.Failstacks[0], it.Failstacks[1], it.Failstacks[2], it.Failstacks[3]);
-                    var process = new SuccessProbabilityProcess(targetGrade, initialState) { Log = null };
-                    var costProcess = new ExpectedCostProcess(initialState) { Log = null };
+                    var process = new EnhancementProcess(initialState) { Rewards = new List<IActionReward<EnhancementState>> { new SuccessProbabilityReward(targetGrade) }};
+                    var costProcess = new EnhancementProcess(initialState)
+                        {Rewards = new List<IActionReward<EnhancementState>> {new FailstackReward()}};
 
                     var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
                     {
@@ -379,8 +385,9 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new ExpectedNumberOfItemsProcess(targetGrade, initialState) { Log = null };
-            var policy = new KeepEnhancingPolicy(item, targetGrade);
+            var process = new EnhancementProcess(initialState)
+                {Rewards = new List<IActionReward<EnhancementState>> {new NumberOfItemsReward(targetGrade)}};
+            var policy = new JustEnhancePolicy(item, targetGrade) { StopAtOnce = false }; 
 
             var value = process.GetOptimalValue(policy); 
             log.Info($"Expected number of items : {value}");
@@ -561,7 +568,11 @@ namespace BDO.Tests
                         0,
                     },
                 };
-                var process = new ReblathCostProcess(failstack, initialState);
+                var process = new EnhancementProcess(initialState)
+                {
+                    Rewards = new List<IActionReward<EnhancementState>>
+                        {new ReblathReward(), new CleanseReward()}
+                };
                 var policy = new ReblathPolicy(failstack);
 
                 var value = process.GetOptimalValue(policy, 100);
@@ -593,7 +604,7 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new ExpectedProfitProcess(targetGrade, initialState) { Log = null };
+            var process = new ExpectedProfitProcess(item, targetGrade, initialState) { Log = null };
             var policy = new JustEnhancePolicy(item, targetGrade);
 
             var value = process.GetOptimalValue(policy);
@@ -625,7 +636,8 @@ namespace BDO.Tests
                     0,
                 },
             };
-            var process = new ExpectedCostProcess(initialState) { Log = null };
+            var process = new EnhancementProcess(initialState)
+                {Rewards = new List<IActionReward<EnhancementState>> {new FailstackReward(false)}};
             var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
             {
                 {0, failstack0},
@@ -633,7 +645,9 @@ namespace BDO.Tests
                 {2, failstack2}
             });
             var value = process.GetOptimalValue(policy, 1000);
-            log.Info($"Expected cost for ({failstack0},{failstack1},{failstack2}) : {-value}");
+            log.Info($"Expected cost for ({failstack0},{failstack1},{failstack2}) : {value}");
+            
+            Assert.Equal(18491165.27436404, value);
         }
         
         [Fact]
@@ -646,11 +660,25 @@ namespace BDO.Tests
             var targetGrade = 3;
 
             var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
+            var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
+            
             // foreach (var quantity in quantities)
             Parallel.ForEach(quantities, quantity =>
             {
+                var initialState = new EnhancementState(0)
+                {
+                    Items = new[]
+                    {
+                        quantity,
+                        0,
+                        0,
+                        0,
+                        0,
+                    },
+                };
+
                 var policy = new TieredFailstackPolicy(item, targetGrade) { StopAtOnce = false };
-                var minFailstacks = new[] {5, 15, 20, 35};
+                var minFailstacks = new[] {10, 15, 20, 35};
                 var maxFailstacks = new[] {10, 25, 35, 40};
 
                 var dict = new Dictionary<(int, int, int, int), double>();
@@ -658,25 +686,10 @@ namespace BDO.Tests
                 var it = new TierIterator(targetGrade, quantity, minFailstacks, maxFailstacks);
                 do
                 {
-                    var initialState = new EnhancementState(0)
+                    var process = new EnhancementProcess(initialState)
                     {
-                        Items = new[]
-                        {
-                            quantity,
-                            0,
-                            0,
-                            0,
-                            0,
-                        },
-                        StoredFailstacks = new[]
-                        {
-                            0,
-                            0,
-                            0,
-                            0,
-                        },
+                        Rewards = new List<IActionReward<EnhancementState>> { new ProfitReward(targetGrade, infos), new FailstackReward()}
                     };
-                    var process = new ExpectedProfitProcess(targetGrade, initialState) {Log = null};
                     // policy = new TieredFailstackPolicy(item, targetGrade);
                     policy.Failstacks = new Dictionary<int, int>
                     {
@@ -701,9 +714,9 @@ namespace BDO.Tests
                     if (dict.ContainsKey(k) && dict[k] > value / quantity)
                         it = it.Skip(2);
 
-                    // k = (it.Failstacks[0], it.Failstacks[1] - 1, it.Failstacks[2], it.Failstacks[3]);
-                    // if (dict.ContainsKey(k) && dict[k] > value / quantity)
-                    //    it = it.Skip(1);
+                    k = (it.Failstacks[0], it.Failstacks[1] - 1, it.Failstacks[2], it.Failstacks[3]);
+                    if (dict.ContainsKey(k) && dict[k] > value / quantity)
+                        it = it.Skip(1);
 
                     //k = (it.Failstacks[0] - 1, it.Failstacks[1], it.Failstacks[2], it.Failstacks[3]);
                     //if (dict.ContainsKey(k) && dict[k] > value / quantity)
@@ -721,17 +734,8 @@ namespace BDO.Tests
                     {2, key.Item3},
                     {3, key.Item4},
                 };
-                var probabilityProcess = new SuccessProbabilityProcess(targetGrade, new EnhancementState
-                {
-                    Items = new[]
-                    {
-                        quantity,
-                        0,
-                        0,
-                        0,
-                        0,
-                    },
-                });
+                    
+                var probabilityProcess = new EnhancementProcess(initialState) { Rewards = new List<IActionReward<EnhancementState>> { new SuccessProbabilityReward(targetGrade) } }; 
                 var successProbability = probabilityProcess.GetOptimalValue(policy, 1e-6);
                 log.Info(
                     $"Expected optimal profit from {quantity} items for failstack {key} : {max * quantity}, per unit : {max} at variance {dictValue[key].Variance} ({ dictValue[key].Variance / dict[key] / quantity} ) and probability {successProbability}");
@@ -739,30 +743,23 @@ namespace BDO.Tests
                 /*log.Info($"Profit cdf from {quantity} items for failstack {key}:");
                 foreach (var x in dictValue[key].Cdf.Abscissas)
                     log.Info($"P({x}) = {dictValue[key].Cdf[x]}");*/
-                
-                var min = dictValue.Where(v => dict[v.Key] > 0).Min(v => Math.Abs(v.Value.Variance / dict[v.Key] / quantity));
-                var minKey = dictValue.Single(v => v.Value.Variance / dict[v.Key] / quantity == min).Key;
-                probabilityProcess = new SuccessProbabilityProcess(targetGrade, new EnhancementState
+
+                if (dictValue.Any(v => dict[v.Key] > 0))
                 {
-                    Items = new[]
+                    var min = dictValue.Where(v => dict[v.Key] > 0).Min(v => Math.Abs(v.Value.Variance / dict[v.Key] / quantity));
+                    var minKey = dictValue.Single(v => v.Value.Variance / dict[v.Key] / quantity == min).Key;
+                    probabilityProcess = new EnhancementProcess(initialState) { Rewards = new List<IActionReward<EnhancementState>> { new SuccessProbabilityReward(targetGrade) } }; 
+                    policy.Failstacks = new Dictionary<int, int>
                     {
-                        quantity,
-                        0,
-                        0,
-                        0,
-                        0,
-                    },
-                });
-                policy.Failstacks = new Dictionary<int, int>
-                {
-                    {0, minKey.Item1},
-                    {1, minKey.Item2},
-                    {2, minKey.Item3},
-                    {3, minKey.Item4},
-                };
-                successProbability = probabilityProcess.GetOptimalValue(policy, 1e-6);
-                log.Info(
-                    $"Expected minvar profit from {quantity} items for failstack {minKey} : {dict[minKey] * quantity}, per unit : {dict[minKey]} at variance {dictValue[minKey].Variance} ( {dictValue[minKey].Variance / dict[minKey] / quantity} ) and probability {successProbability}");
+                        {0, minKey.Item1},
+                        {1, minKey.Item2},
+                        {2, minKey.Item3},
+                        {3, minKey.Item4},
+                    };
+                    successProbability = probabilityProcess.GetOptimalValue(policy, 1e-6);
+                    log.Info(
+                        $"Expected minvar profit from {quantity} items for failstack {minKey} : {dict[minKey] * quantity}, per unit : {dict[minKey]} at variance {dictValue[minKey].Variance} ( {dictValue[minKey].Variance / dict[minKey] / quantity} ) and probability {successProbability}");
+                }
                 
                 /*for (var i = minFailstacks[0]; i < maxFailstacks[0]; ++i)
                 {
@@ -772,8 +769,7 @@ namespace BDO.Tests
                 }*/
 
                 if (quantity == 10 && key.Item1 == 10)
-                    Assert.Equal(-92648.6029714051, max);
-                //});
+                    Assert.Equal(-92648.60297140495, max);
             });
         }            
     }

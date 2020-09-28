@@ -52,16 +52,24 @@ namespace BDO.Enhancement.Stochastics.Policies
         public bool StopAtOnce { get; set; } = true;
         public ILog Log { get; set; }
         
-        public IEnumerable<IMarkovAction<EnhancementState>> GetAllowedActions()
+        public IEnumerable<IMarkovAction<EnhancementState>> GetAllowedActions(EnhancementState state)
         {
             var list = new List<IMarkovAction<EnhancementState>>();
-            for (var i = 1; i <= _targetGrade; ++i)
-                list.Add(new EnhancementAction(i, _item));
-            list.Add(new FailstackAction());
-            list.Add(new StoreFailstack(0));
-            list.Add(new StoreFailstack(1));
-            list.Add(new RestoreFailstack(0));
-            list.Add(new RestoreFailstack(1));
+            for (var grade = 1; grade <= _targetGrade; ++grade)
+            {
+                if (state.Items[0] > 0 && state.Items[0] + state.Items[grade - 1] > 1)
+                    list.Add(_enhancementActions[grade]);
+            }
+
+            for (var slot = 0; slot < 4; slot++)
+            {
+               if (state.StoredFailstacks[slot] == 0)
+                   list.Add(_storeActions[slot]);
+               if (state.StoredFailstacks[slot] > 0 && state.FailStack == 0)
+                   list.Add(_restoreActions[slot]);
+            }
+            
+            list.AddRange(_failstackActions.Skip(state.FailStack));
             return list;
         }
 

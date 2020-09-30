@@ -556,7 +556,7 @@ namespace BDO.Tests
 
             var prevValue = 0.0;
             var failstacks = Enumerable.Range(1, 10);
-            Parallel.ForEach(failstacks, failstack =>
+            Parallel.ForEach(failstacks, new ParallelOptions { MaxDegreeOfParallelism = 1 }, failstack =>
             {
                 var initialState = new EnhancementState(0)
                 {
@@ -573,7 +573,7 @@ namespace BDO.Tests
                 var process = new EnhancementProcess(initialState)
                 {
                     Rewards = new List<IActionReward<EnhancementState>>
-                        {new ReblathReward(), new CleanseReward()}
+                        {new ReblathReward(), new CleanseReward() },
                 };
                 var policy = new ReblathPolicy(failstack);
 

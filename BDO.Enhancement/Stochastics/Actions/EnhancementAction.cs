@@ -110,8 +110,13 @@ namespace BDO.Enhancement.Stochastics.Actions
                 
                 return _nextStates[current];
             }
-        } 
-        
+        }
+
+        public override string ToString()
+        {
+            return $"Enhancement[{Grade}]";
+        }
+
         private double GetChance(int failstack)
         {
             var chance = _info.BaseChance;

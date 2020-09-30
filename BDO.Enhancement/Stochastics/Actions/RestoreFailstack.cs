@@ -31,6 +31,11 @@ namespace BDO.Enhancement.Stochastics.Actions
             };
         }
 
+        public override string ToString()
+        {
+            return $"Restore[{_slot}]";
+        }
+
         // public override IEnumerable<EnhancementState> this[EnhancementState current] => GetStates(current);
     }
 }

@@ -37,6 +37,15 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
         }
 
+        public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public bool IsModified { get; set; } = true;
+
+        public EnhancementState[] Modifications { get; }
+
         public IMarkovAction<EnhancementState> this[EnhancementState state]
         {
             get

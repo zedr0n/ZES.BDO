@@ -29,6 +29,11 @@ namespace BDO.Enhancement.Stochastics.Actions
             };
         }
 
+        public override string ToString()
+        {
+            return $"Failstack[{_amount}]";
+        }
+
         // public override IEnumerable<EnhancementState> this[EnhancementState current] => GetStates(current);
     }
 }

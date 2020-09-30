@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reactive.Linq;
@@ -10,6 +11,7 @@ using BDO.Enhancement.Commands;
 using BDO.Enhancement.Queries;
 using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics;
+using BDO.Enhancement.Stochastics.Actions;
 using BDO.Enhancement.Stochastics.Policies;
 using BDO.Enhancement.Stochastics.Rewards;
 using NLog.Fluent;
@@ -282,7 +284,7 @@ namespace BDO.Tests
             var targetGrade = 3;
             // var quantities = Enumerable.Range(3, 3).Select(i => 10 * i);
             // var quantities = new List<int> { 20, 24, 28, 32, 36, 40 };
-            var quantities = new List<int> { 10 };
+            var quantities = new List<int> { 20 };
             // var quantities = new List<int> { 8, 12, 16, 24, 28, 32 };
             
             var probabilities = new Dictionary<(int, int, int, int, int), double>();
@@ -649,6 +651,132 @@ namespace BDO.Tests
             
             Assert.Equal(18491165.27436404, value);
         }
+
+        [Fact]
+        public void CanCalculateOptimalProfitViaPolicyIteration()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 3;
+
+            var quantities = new List<int> { 10 };
+            var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
+            
+            Parallel.ForEach(quantities, quantity =>
+            {
+                var initialState = new EnhancementState(0)
+                {
+                    Items = new[]
+                    {
+                        quantity,
+                        0,
+                        0,
+                        0,
+                        0,
+                    },
+                };
+
+                var policy = new TieredFailstackPolicy(item, targetGrade)
+                {
+                    StopAtOnce = false,
+                    Failstacks = new Dictionary<int, int>
+                    {
+                        { 0, 0 },
+                        { 1, 15 },
+                        { 2, 24 },
+                        { 3, 30 },
+                    }
+                };
+                var process = new EnhancementProcess(initialState)
+                {
+                    Rewards = new List<IActionReward<EnhancementState>> { new ProfitReward(targetGrade, infos), new FailstackReward()},
+                    Log = log,
+                };
+
+                var value = process.GetOptimalValueViaPolicyIteration(policy, 1000);
+                Assert.Equal(3219424.1324531073, value);
+                
+                log.Info($"Optimal value : {value}");
+                
+                var testPolicy = new TieredFailstackPolicy(item, targetGrade)
+                 {
+                     StopAtOnce = false,
+                     Failstacks = new Dictionary<int, int>
+                     {
+                         { 0, 0 },
+                         { 1, 15 },
+                         { 2, 24 },
+                         { 3, 30 },
+                     }
+                 };
+
+                var baseValue = process.GetOptimalValue(testPolicy, 1000);
+                Assert.Equal(2484249.757255047, baseValue);
+                log.Info($"Base value : {baseValue}");
+                
+                foreach (var state in policy.Modifications.Where(s => s.Items[0] > 8))
+                {
+                    var action = policy[state]; 
+                    log.Info($"({string.Join(',', state.Items)}) |{state.FailStack}| [{state.StoredFailstacks[0]},{state.StoredFailstacks[1]}] : {action} >> {testPolicy[state]}");     
+                }
+            });
+        }
+
+        [Fact]
+        public void CanCalculateOptimalProfit()
+        {
+            var container = CreateContainer();
+            var log = container.GetInstance<ILog>();
+            
+            var item = "Silver Embroidered";
+            var targetGrade = 3;
+
+            // var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
+            var quantities = new List<int> { 5 };
+            var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
+
+            Parallel.ForEach(quantities, quantity =>
+            {
+                var initialState = new EnhancementState(0)
+                {
+                    Items = new[]
+                    {
+                        quantity,
+                        0,
+                        0,
+                        0,
+                        0,
+                    },
+                };
+
+                var basePolicy = new TieredFailstackPolicy(item, targetGrade)
+                {
+                    StopAtOnce = false,
+                    Failstacks = new Dictionary<int, int>
+                    {
+                         { 0, 0 },
+                         { 1, 15 },
+                         { 2, 24 },
+                         { 3, 30 },
+                    },
+                };
+                var process = new EnhancementProcess(initialState)
+                {
+                    Rewards = new List<IActionReward<EnhancementState>> { new ProfitReward(targetGrade, infos), new FailstackReward()},
+                    Log = log,
+                };
+
+                var value = process.GetOptimalValueWithBasePolicy(basePolicy, out var optimalPolicy, 1000);
+                log.Info($"Optimal value : {value}");
+                /*var states = optimalPolicy.Actions.Where(k => k.Key.Items[0] == 4 && k.Key.Items[1] > 1 && k.Key.Items[2] == 0);
+                foreach (var s in states.Select(k => k.Key))
+                {
+                    log.Info($"{string.Join(',',s.Items)},{s.FailStack} : {optimalPolicy[s]}");
+                }*/
+            });
+        }
         
         [Fact]
         public void CanGetExpectedProfitWithTieredFailstack()
@@ -678,7 +806,7 @@ namespace BDO.Tests
                 };
 
                 var policy = new TieredFailstackPolicy(item, targetGrade) { StopAtOnce = false };
-                var minFailstacks = new[] {10, 15, 20, 35};
+                var minFailstacks = new[] {0, 0, 25, 35};
                 var maxFailstacks = new[] {10, 25, 35, 40};
 
                 var dict = new Dictionary<(int, int, int, int), double>();
@@ -714,9 +842,9 @@ namespace BDO.Tests
                     if (dict.ContainsKey(k) && dict[k] > value / quantity)
                         it = it.Skip(2);
 
-                    k = (it.Failstacks[0], it.Failstacks[1] - 1, it.Failstacks[2], it.Failstacks[3]);
-                    if (dict.ContainsKey(k) && dict[k] > value / quantity)
-                        it = it.Skip(1);
+                    // k = (it.Failstacks[0], it.Failstacks[1] - 1, it.Failstacks[2], it.Failstacks[3]);
+                    // if (dict.ContainsKey(k) && dict[k] > value / quantity)
+                    //    it = it.Skip(1);
 
                     //k = (it.Failstacks[0] - 1, it.Failstacks[1], it.Failstacks[2], it.Failstacks[3]);
                     //if (dict.ContainsKey(k) && dict[k] > value / quantity)

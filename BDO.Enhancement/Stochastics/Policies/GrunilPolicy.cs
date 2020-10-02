@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Static;
@@ -74,6 +75,11 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
 
             return FailstackToGrade.Max(x => x.Value) + 1;
+        }
+
+        public object Clone()
+        {
+            throw new NotImplementedException();
         }
     }
 }

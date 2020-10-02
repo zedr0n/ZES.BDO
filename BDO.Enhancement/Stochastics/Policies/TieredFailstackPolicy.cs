@@ -12,12 +12,12 @@ namespace BDO.Enhancement.Stochastics.Policies
     {
         private readonly string _item;
         private readonly int _targetGrade;
-        private readonly EnhancementAction[] _enhancementActions;
-        private readonly FailstackAction[] _failstackActions;
-        private readonly StoreFailstack[] _storeActions;
-        private readonly RestoreFailstack[] _restoreActions;
-        private readonly Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]> _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>();
-        private readonly Dictionary<EnhancementState, IMarkovAction<EnhancementState>> _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>();
+        private EnhancementAction[] _enhancementActions;
+        private FailstackAction[] _failstackActions;
+        private StoreFailstack[] _storeActions;
+        private RestoreFailstack[] _restoreActions;
+        private Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]> _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>();
+        private Dictionary<EnhancementState, IMarkovAction<EnhancementState>> _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>();
 
         private const int MAX_FAILSTACK = 35;
 
@@ -32,9 +32,6 @@ namespace BDO.Enhancement.Stochastics.Policies
             _targetGrade = targetGrade;
             _item = item;
 
-            MinFailstacks = new int[] { 0, 0, 0, 30 };
-            MaxFailstacks = new int[] { 30, 30, 30, 40 };
-            
             _enhancementActions = new EnhancementAction[targetGrade + 1]; 
             _failstackActions = new FailstackAction[MAX_FAILSTACK];
             _storeActions = new StoreFailstack[4];
@@ -57,9 +54,6 @@ namespace BDO.Enhancement.Stochastics.Policies
 
         public bool StopAtOnce { get; set; } = true;
         public ILog Log { get; set; }
-        
-        public int[] MinFailstacks { get; set; }
-        public int[] MaxFailstacks { get; set; }
         
         public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
         {
@@ -213,11 +207,29 @@ namespace BDO.Enhancement.Stochastics.Policies
                 if (!_modifications.TryGetValue(state, out var current))
                     current = this[state];
 
-                if (current == value) 
+                if (current == value)
                     return;
+                
                 IsModified = true;
                 _modifications[state] = value;
             }
+        }
+
+        public object Clone()
+        {
+            return new TieredFailstackPolicy(_item, _targetGrade)
+            {
+                StopAtOnce = StopAtOnce,
+                Failstacks = Failstacks,
+                // _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>(_actions),
+                _actions = _actions,
+                _enhancementActions = _enhancementActions,
+                _failstackActions = _failstackActions,
+                _storeActions = _storeActions,
+                _restoreActions = _restoreActions,
+                // _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>(_modifications),
+            };
+            
         }
     }
 }

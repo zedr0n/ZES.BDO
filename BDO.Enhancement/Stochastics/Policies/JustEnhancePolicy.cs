@@ -69,5 +69,10 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
             set => throw new System.NotImplementedException();
         }
+
+        public object Clone()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

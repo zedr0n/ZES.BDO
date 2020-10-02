@@ -661,6 +661,7 @@ namespace BDO.Tests
             var item = "Silver Embroidered";
             var targetGrade = 3;
 
+            var check = false;
             var quantities = new List<int> { 10 };
             var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
             
@@ -684,9 +685,9 @@ namespace BDO.Tests
                     Failstacks = new Dictionary<int, int>
                     {
                         { 0, 0 },
-                        { 1, 15 },
-                        { 2, 24 },
-                        { 3, 30 },
+                        { 1, 0 },
+                        { 2, 0 },
+                        { 3, 0 },
                     }
                 };
                 var process = new EnhancementProcess(initialState)
@@ -694,90 +695,58 @@ namespace BDO.Tests
                     Rewards = new List<IActionReward<EnhancementState>> { new ProfitReward(targetGrade, infos), new FailstackReward()},
                     Log = log,
                 };
-
-                var value = process.GetOptimalValueViaPolicyIteration(policy, 1000);
-                Assert.Equal(3219424.1324531073, value);
+                
+                var value = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, 1000);
+                if (quantity == 10 && check)
+                    Assert.Equal(3315007.3653736156, value);
                 
                 log.Info($"Optimal value : {value}");
+
+                var optimalValue = process.GetOptimalValue(optimalPolicy, 1000);
+                log.Info($"Test optimal value: {optimalValue}");
                 
-                var testPolicy = new TieredFailstackPolicy(item, targetGrade)
-                 {
-                     StopAtOnce = false,
-                     Failstacks = new Dictionary<int, int>
-                     {
-                         { 0, 0 },
-                         { 1, 15 },
-                         { 2, 24 },
-                         { 3, 30 },
-                     }
-                 };
-
-                var baseValue = process.GetOptimalValue(testPolicy, 1000);
-                Assert.Equal(2484249.757255047, baseValue);
-                log.Info($"Base value : {baseValue}");
-                
-                foreach (var state in policy.Modifications.Where(s => s.Items[0] > 8))
-                {
-                    var action = policy[state]; 
-                    log.Info($"({string.Join(',', state.Items)}) |{state.FailStack}| [{state.StoredFailstacks[0]},{state.StoredFailstacks[1]}] : {action} >> {testPolicy[state]}");     
-                }
-            });
-        }
-
-        [Fact]
-        public void CanCalculateOptimalProfit()
-        {
-            var container = CreateContainer();
-            var log = container.GetInstance<ILog>();
-            
-            var item = "Silver Embroidered";
-            var targetGrade = 3;
-
-            // var quantities = Enumerable.Range(1, 1).Select(i => 10 * i);
-            var quantities = new List<int> { 5 };
-            var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
-
-            Parallel.ForEach(quantities, quantity =>
-            {
-                var initialState = new EnhancementState(0)
-                {
-                    Items = new[]
-                    {
-                        quantity,
-                        0,
-                        0,
-                        0,
-                        0,
-                    },
-                };
-
-                var basePolicy = new TieredFailstackPolicy(item, targetGrade)
+                /*var otherPolicy = new TieredFailstackPolicy(item, targetGrade)
                 {
                     StopAtOnce = false,
                     Failstacks = new Dictionary<int, int>
                     {
-                         { 0, 0 },
-                         { 1, 15 },
-                         { 2, 24 },
-                         { 3, 30 },
-                    },
-                };
-                var process = new EnhancementProcess(initialState)
-                {
-                    Rewards = new List<IActionReward<EnhancementState>> { new ProfitReward(targetGrade, infos), new FailstackReward()},
-                    Log = log,
+                        { 0, 30 },
+                        { 1, 30 },
+                        { 2, 30 },
+                        { 3, 30 },
+                    }
                 };
 
-                var value = process.GetOptimalValueWithBasePolicy(basePolicy, out var optimalPolicy, 1000);
-                log.Info($"Optimal value : {value}");
-                /*var states = optimalPolicy.Actions.Where(k => k.Key.Items[0] == 4 && k.Key.Items[1] > 1 && k.Key.Items[2] == 0);
-                foreach (var s in states.Select(k => k.Key))
+                var otherValue =
+                    process.GetOptimalValueViaPolicyIteration(otherPolicy, out var otherOptimalPolicy, 1000);
+                
+                foreach (var state in optimalPolicy.Modifications.Union(policy.Modifications))
                 {
-                    log.Info($"{string.Join(',',s.Items)},{s.FailStack} : {optimalPolicy[s]}");
+                    var action = optimalPolicy[state];
+                    var otherAction = otherOptimalPolicy[state];
+                    if (action.ToString() != otherAction.ToString())
+                        log.Info($"({string.Join(',', state.Items)}) |{state.FailStack}| [{state.StoredFailstacks[0]},{state.StoredFailstacks[1]}] : {action} >> {otherAction}");     
                 }*/
+
+                 var testPolicy = new TieredFailstackPolicy(item, targetGrade)
+                 {
+                     StopAtOnce = false,
+                     Failstacks = policy.Failstacks,
+                 };
+
+                var baseValue = process.GetOptimalValue(testPolicy, 1000);
+                if (quantity == 10 && check)
+                    Assert.Equal(869292.7303920856, baseValue);
+                
+                foreach (var state in optimalPolicy.Modifications)
+                {
+                    var action = optimalPolicy[state]; 
+                    if (action.ToString() != testPolicy[state].ToString())
+                        log.Info($"({string.Join(',', state.Items)}) |{state.FailStack}| [{state.StoredFailstacks[0]},{state.StoredFailstacks[1]}] : {action} >> {testPolicy[state]}");     
+                }
             });
         }
-        
+
         [Fact]
         public void CanGetExpectedProfitWithTieredFailstack()
         {

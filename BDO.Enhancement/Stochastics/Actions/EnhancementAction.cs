@@ -32,6 +32,7 @@ namespace BDO.Enhancement.Stochastics.Actions
         private readonly Data.EnhancementInfo _info;
 
         public int Grade { get; }
+        public bool UseCron { get; set; }
 
         /// <inheritdoc/>
         public override double this[EnhancementState @from, EnhancementState to]
@@ -48,8 +49,8 @@ namespace BDO.Enhancement.Stochastics.Actions
                 if (base[from, to] == 0)
                     return 0.0;*/
 
-                // var chance = GetChance(from.FailStack);
-                var chance = _chances[from.FailStack];
+                var chance = GetChance(from.FailStack);
+                // var chance = _chances[from.FailStack];
                 if (to.Items[Grade] == from.Items[Grade]) // failure
                     return 1.0 - chance;
                 return chance;
@@ -80,7 +81,7 @@ namespace BDO.Enhancement.Stochastics.Actions
                         s.Items[0] -= _info.ItemLoss;
                     }
 
-                    if (_info.DropEnhancementGrade)
+                    if (_info.DropEnhancementGrade && !UseCron)
                     {
                         s.Items[Grade - 1]--;
                         s.Items[Grade - 2]++;
@@ -114,7 +115,7 @@ namespace BDO.Enhancement.Stochastics.Actions
 
         public override string ToString()
         {
-            return $"Enhancement[{Grade}]";
+            return UseCron ? $"Cron[{Grade}]" : $"Enhancement[{Grade}]";
         }
 
         private double GetChance(int failstack)

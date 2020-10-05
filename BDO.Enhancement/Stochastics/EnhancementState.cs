@@ -50,14 +50,16 @@ namespace BDO.Enhancement.Stochastics
             get => _items;
             set => _items = value;
         }
+        
         public int NumberOfAttempts { get; set; }
         public int FailStack { get; set; }
         public int JustFailedGrade { get; set; }
-
+        
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"({string.Join(','.ToString(), Items)}) |{FailStack}| [{StoredFailstacks[0]},{StoredFailstacks[1]}]";
+            var str = JustFailedGrade > 0 ? $"[{JustFailedGrade}]" : string.Empty; 
+            return str + $"({string.Join(','.ToString(), Items)}) |{FailStack}| [{StoredFailstacks[0]},{StoredFailstacks[1]}]";
         }
 
         public EnhancementState Clone(Action<EnhancementState> action = null)

@@ -594,7 +594,8 @@ namespace BDO.Tests
 
             var optimalCost = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
             log.Info($"Optimal cost : {-optimalCost}");
-            Assert.Equal(101608850.03925072, -optimalCost);
+            if (failstack == 46)
+                Assert.Equal(101608850.03925072, -optimalCost);
             
             foreach (var state in optimalPolicy.Modifications)
             {
@@ -612,7 +613,7 @@ namespace BDO.Tests
 
             var prevValue = 0.0;
             var failstacks = Enumerable.Range(1, 10);
-            Parallel.ForEach(failstacks, new ParallelOptions { MaxDegreeOfParallelism = Configuration.ThreadsPerInstance }, failstack =>
+            Parallel.ForEach(failstacks, new ParallelOptions { MaxDegreeOfParallelism = 1 }, failstack =>
             {
                 var initialState = new EnhancementState(0)
                 {
@@ -715,7 +716,7 @@ namespace BDO.Tests
             var log = container.GetInstance<ILog>();
             
             var item = "Loggia Accessory";
-            var targetGrade = 3;
+            var targetGrade = 2;
 
             var initialState = new EnhancementState(0);
            
@@ -731,6 +732,8 @@ namespace BDO.Tests
             log.Info($"Expected cost for +{targetGrade} : {-value.Mean} at variance {value.Variance}");
             if (targetGrade == 3)
                 Assert.Equal(-42998725.41710255, value.Mean);
+            else if (targetGrade == 2)
+                Assert.Equal(-9981311.112739593, value.Mean);
         }
         
         [Fact]

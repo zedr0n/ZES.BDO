@@ -54,6 +54,7 @@ namespace BDO.Enhancement.Stochastics
         public int NumberOfAttempts { get; set; }
         public int FailStack { get; set; }
         public int JustFailedGrade { get; set; }
+        public int NumberOfValks { get; set; }
         
         /// <inheritdoc/>
         public override string ToString()
@@ -69,6 +70,7 @@ namespace BDO.Enhancement.Stochastics
                 JustFailedGrade = JustFailedGrade, 
                 NumberOfAttempts = NumberOfAttempts,
                 FailStack = FailStack,
+                NumberOfValks = NumberOfValks,
             };
 
             action?.Invoke(state);
@@ -97,7 +99,7 @@ namespace BDO.Enhancement.Stochastics
             b &= StoredFailstacks[2] == other.StoredFailstacks[2];
             b &= StoredFailstacks[3] == other.StoredFailstacks[3];
             
-            return b && NumberOfAttempts == other.NumberOfAttempts && FailStack == other.FailStack && JustFailedGrade == other.JustFailedGrade;
+            return b && NumberOfAttempts == other.NumberOfAttempts && FailStack == other.FailStack && JustFailedGrade == other.JustFailedGrade && NumberOfValks == other.NumberOfValks;
         }
 
         /// <inheritdoc/>
@@ -125,6 +127,7 @@ namespace BDO.Enhancement.Stochastics
                 hashCode = (hashCode * 16777619) ^ NumberOfAttempts;
                 hashCode = (hashCode * 16777619) ^ FailStack;
                 hashCode = (hashCode * 16777619) ^ JustFailedGrade;
+                hashCode = (hashCode * 16777619) ^ NumberOfValks;
                 return hashCode;
             }
         }

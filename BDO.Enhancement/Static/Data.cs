@@ -239,7 +239,7 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0118,
                 SoftCap = 0.7,
                 SoftCapIncrease = 0.0024,
-                NumberOfStacks = 2,
+                NumberOfStacks = 1,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
             },
@@ -250,7 +250,8 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0077,
                 SoftCap = 0.7,
                 SoftCapIncrease = 0.0016,
-                NumberOfStacks = 3,
+                NumberOfStacks = 1,
+                Cron = 19,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
             },
@@ -261,9 +262,9 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0063,
                 SoftCap = 0.7,
                 SoftCapIncrease = 0.0012,
-                NumberOfStacks = 4,
+                NumberOfStacks = 1,
                 DropEnhancementGrade = true,
-                Cron = 19,
+                Cron = 37,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
             },
@@ -274,7 +275,7 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0020,
                 SoftCap = 0.3,
                 SoftCapIncrease = 0.0002,
-                NumberOfStacks = 5,
+                NumberOfStacks = 3,
                 DropEnhancementGrade = true,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
@@ -286,7 +287,7 @@ namespace BDO.Enhancement.Static
                 BaseIncrease = 0.0003,
                 SoftCap = 0.3,
                 SoftCapIncrease = 0.00003,
-                NumberOfStacks = 6,
+                NumberOfStacks = 4,
                 DropEnhancementGrade = true,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
@@ -299,6 +300,7 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
                 BlackGem = 1,
+                RepairCost = 2000000,
             },
             new EnhancementInfo("Loggia Accessory", 1)
             {
@@ -308,6 +310,7 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
                 BlackGem = 2,
+                RepairCost = 1000000,
             },
             new EnhancementInfo("Loggia Accessory", 2)
             {
@@ -317,6 +320,7 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
                 BlackGem = 3,
+                RepairCost = 1000000,
             },
             new EnhancementInfo("Loggia Accessory", 3)
             {
@@ -326,6 +330,7 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
                 BlackGem = 4,
+                RepairCost = 1000000,
             },
             new EnhancementInfo("Loggia Accessory", 4)
             {
@@ -335,6 +340,7 @@ namespace BDO.Enhancement.Static
                 SoftCap = 1,
                 SoftCapIncrease = 0,
                 BlackGem = 5,
+                RepairCost = 1000000,
             },
             new EnhancementInfo("Grunil", 0)
             {
@@ -421,7 +427,7 @@ namespace BDO.Enhancement.Static
             public double SoftCap { get; set; }
             public double SoftCapIncrease { get; set; }
             
-            public bool IsFor(string item, int grade) => Grade == grade && item.StartsWith(Name, StringComparison.InvariantCultureIgnoreCase);
+            public bool IsFor(string item, int grade) => Grade == grade && item.Equals(Name, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }

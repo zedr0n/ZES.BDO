@@ -37,6 +37,11 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
         }
 
+        public bool HasOptimal(EnhancementState state)
+        {
+            throw new System.NotImplementedException();
+        }
+
         public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
         {
             throw new System.NotImplementedException();

@@ -553,16 +553,16 @@ namespace BDO.Tests
         {
             var container = CreateContainer();
             var log = container.GetInstance<ILog>();
-
-            var failstack = 50;
+            var failstack = 46;
             var item = "Grunil";
-            var targetGrade = 4;
+            var targetGrade = 5;
 
             var initialState = new EnhancementState(0)
             {
                 Items = new []
                 {
-                    1,
+                    0, 
+                    5,
                     0,
                     0,
                     0,
@@ -570,20 +570,22 @@ namespace BDO.Tests
                 },
             };
 
-            var info = Data.EnhancementInfos.Single(i => i.IsFor(item, targetGrade - 1));
             var process = new EnhancementProcess(initialState)
             {
-                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(info), new FailstackReward() },
+                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() },
                 Log = log,
+                UseReachableStateSpace = false,
             };
             var policy = new TieredFailstackPolicy(item, targetGrade) {
                 Failstacks = new Dictionary<int, int>
                 {
-                    {0, 10},
-                    {1, 20},
-                    {2, 30},
+                    {0, 9},
+                    {1, 9},
+                    {2, 35},
+                    {3, 40},
+                    {4, 40}
                 },
-                TargetFailstack = 50, 
+                TargetFailstack = failstack,
             };
 
             var tolerance = 100.0;
@@ -592,6 +594,7 @@ namespace BDO.Tests
 
             var optimalCost = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
             log.Info($"Optimal cost : {-optimalCost}");
+            Assert.Equal(101608850.03925072, -optimalCost);
             
             foreach (var state in optimalPolicy.Modifications)
             {
@@ -609,7 +612,7 @@ namespace BDO.Tests
 
             var prevValue = 0.0;
             var failstacks = Enumerable.Range(1, 10);
-            Parallel.ForEach(failstacks, new ParallelOptions { MaxDegreeOfParallelism = 1 }, failstack =>
+            Parallel.ForEach(failstacks, new ParallelOptions { MaxDegreeOfParallelism = Configuration.ThreadsPerInstance }, failstack =>
             {
                 var initialState = new EnhancementState(0)
                 {
@@ -713,18 +716,21 @@ namespace BDO.Tests
             
             var item = "Loggia Accessory";
             var targetGrade = 3;
-            
-            var initialState = new EnhancementState(0)
+
+            var initialState = new EnhancementState(0);
+           
+            var process = new EnhancementProcess(initialState)
             {
-                Items = new []
-                {
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                },
+                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() },
+                Log = log,
             };
+            
+            var policy = new JustEnhancePolicy(item, targetGrade);
+            var tolerance = 1000;
+            var value = process.GetOptimalValueAndVariance(policy, tolerance);
+            log.Info($"Expected cost for +{targetGrade} : {-value.Mean} at variance {value.Variance}");
+            if (targetGrade == 3)
+                Assert.Equal(-42998725.41710255, value.Mean);
         }
         
         [Fact]
@@ -733,43 +739,49 @@ namespace BDO.Tests
             var container = CreateContainer();
             var log = container.GetInstance<ILog>();
             
-            var item = "Loggia";
-            var targetGrade = 3;
+            var item = "Loggia"; 
+            var targetGrade = 2;
 
             var initialState = new EnhancementState(0)
             {
                 Items = new []
                 {
+                    0,
                     1,
                     0,
                     0,
                     0,
                     0,
                 },
+                NumberOfValks = 0,
             };
 
-            var info = Data.EnhancementInfos.Single(i => i.IsFor(item, targetGrade - 1));
             var process = new EnhancementProcess(initialState)
             {
-                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(info), new FailstackReward() },
+                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() },
                 Log = log,
+                UseReachableStateSpace = false,
             };
+            
+            // (9,14,29) for TRI
             var policy = new TieredFailstackPolicy(item, targetGrade, new Dictionary<int, int>
             {
-                {0, 0},
-                {1, 0},
-                {2, 0},
+                {0, 9},
+                {1, 14},
+                {2, 29},
+                {3, 33},
             })
             {
                 MaxGradeFailstacks = new Dictionary<int, int>
                 {
                     {0, 15},
                     {1, 20},
-                    {2, 30},
+                    {2, 35},
+                    {3, 40},
                 }
                 
             };
-            double tolerance = 1000;
+            double tolerance = 100;
             
             var value = process.GetOptimalValue(policy, tolerance);
             log.Info($"Expected cost for {string.Join(',', policy.Failstacks.Values)} : {-value}");
@@ -777,8 +789,8 @@ namespace BDO.Tests
             var optimalValue = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
             log.Info($"Optimal cost : {-optimalValue}");
 
-            optimalValue = process.GetOptimalValue(optimalPolicy, tolerance);
-            log.Info($"Optimal policy cost : {-optimalValue}");
+            var valueAndVariance = process.GetOptimalValueAndVariance(optimalPolicy, tolerance);
+            log.Info($"Optimal policy cost : {-valueAndVariance.Mean} at variance {valueAndVariance.Variance}");
             
             foreach (var state in optimalPolicy.Modifications)
             {
@@ -797,8 +809,8 @@ namespace BDO.Tests
             var item = "Silver Embroidered";
             var targetGrade = 3;
 
-            var check = false;
-            var quantities = new List<int> { 30 };
+            var check = true;
+            var quantities = new List<int> { 10 };
             var infos = Data.EnhancementInfos.Where(i => i.Name == item).ToArray();
             
             Parallel.ForEach(quantities, quantity =>
@@ -847,7 +859,7 @@ namespace BDO.Tests
 
                 var value = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, 100);
                 if (quantity == 10 && check)
-                    Assert.Equal(3315007.3653736156, value);
+                    Assert.Equal(3743108.641005154, value);
                 
                 log.Info($"Optimal value : {value}");
 

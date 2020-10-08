@@ -12,16 +12,18 @@ namespace BDO.Enhancement.Stochastics.Policies
     {
         private readonly string _item;
         private readonly int _targetGrade;
-        private readonly int _itemLoss = 0;
+        private int _itemLoss = 0;
         private EnhancementAction[] _enhancementActions;
         private EnhancementAction[] _cronActions;
         private FailstackAction[] _failstackActions;
         private StoreFailstack[] _storeActions;
         private RestoreFailstack[] _restoreActions;
+        private ValkAction[] _valkActions;
+        private HashSet<EnhancementState> _optimals = new HashSet<EnhancementState>();
         private Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]> _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>();
         private Dictionary<EnhancementState, IMarkovAction<EnhancementState>> _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>();
 
-        private const int MAX_FAILSTACK = 35;
+        private const int MAX_FAILSTACK = 45;
 
         public TieredFailstackPolicy(string item, int targetGrade, Dictionary<int, int> failstacks)
             : this(item, targetGrade)
@@ -40,6 +42,9 @@ namespace BDO.Enhancement.Stochastics.Policies
             _failstackActions = new FailstackAction[MAX_FAILSTACK];
             _storeActions = new StoreFailstack[4];
             _restoreActions = new RestoreFailstack[4];
+            _valkActions = new ValkAction[10];
+            for(var i = 1; i <= 10; ++i)
+                _valkActions[i - 1] = new ValkAction(i);
             for (var slot = 0; slot < 4; ++slot)
                 _storeActions[slot] = new StoreFailstack(slot);
             for (var slot = 0; slot < 4; ++slot)
@@ -91,13 +96,19 @@ namespace BDO.Enhancement.Stochastics.Policies
                     list.Add(_cronActions[grade - 3]);
             }
 
+            if (state.NumberOfValks > 0 && state.FailStack > 0 && state.JustFailedGrade < 0 && state.Items[_targetGrade - 1] > 0)
+            {
+                //for (var i = 1; i <= state.NumberOfValks; i += 3)
+                list.Add(_valkActions[state.NumberOfValks - 1]);
+            }
+
             /*var toGrade = GetToGrade(state);
             if (state.Items[toGrade - 1] > (toGrade == 1 ? 1 : 0))
                 list.Add(_enhancementActions[toGrade]);*/
 
             var minStoreFailstack = 15;
 
-            for (var slot = 0; slot < _targetGrade - 1; slot++)
+            for (var slot = 0; slot < Math.Min(_targetGrade - 1, 2); slot++)
             {
                if (state.FailStack > minStoreFailstack && state.StoredFailstacks[slot] == 0 && state.JustFailedGrade > 0)
                    list.Add(_storeActions[slot]);
@@ -105,7 +116,7 @@ namespace BDO.Enhancement.Stochastics.Policies
                    list.Add(_restoreActions[slot]);
             }
 
-            var maxFailstack = MAX_FAILSTACK - 1;
+            var maxFailstack = MAX_FAILSTACK;
             var toGrade = GetToGrade(state);
             if (MaxGradeFailstacks.ContainsKey(toGrade - 1))
                 maxFailstack = MaxGradeFailstacks[toGrade - 1] - 1;
@@ -116,7 +127,7 @@ namespace BDO.Enhancement.Stochastics.Policies
                     list.Add(_failstackActions[i]);       
                 for (var i = 21; i < Math.Min(maxFailstack, 30); i += 3)
                     list.Add(_failstackActions[i]);
-                for (var i = 29; i < Math.Min(maxFailstack, MAX_FAILSTACK); i++)
+                for (var i = 28; i < Math.Min(maxFailstack, MAX_FAILSTACK); i++)
                     list.Add(_failstackActions[i]);
                 // list.AddRange(_failstackActions.Take(Math.Max(maxFailstack - state.FailStack, 0)));
             }
@@ -178,7 +189,7 @@ namespace BDO.Enhancement.Stochastics.Policies
                 if (_modifications.TryGetValue(state, out var action))
                     return action;
 
-                if (state.FailStack > 100)
+                if (TargetFailstack > 0 && state.FailStack >= TargetFailstack)
                     return null;
                 
                 if (state.Items[0] - _itemLoss < 0)
@@ -235,6 +246,7 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
             set
             {
+                _optimals.Add(state);
                 if (value == null)
                     return;
                 
@@ -249,14 +261,27 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
         }
 
+        /// <inheritdoc/>
+        public bool HasOptimal(EnhancementState state)
+        {
+            if (_optimals.Count == 0)
+                return true;
+
+            return _optimals.Contains(state);
+        }
+
+        /// <inheritdoc/>
         public object Clone()
         {
             return new TieredFailstackPolicy(_item, _targetGrade)
             {
                 StopAtOnce = StopAtOnce,
                 Failstacks = Failstacks,
-                // _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>(_actions),
+                TargetFailstack = TargetFailstack,
                 _actions = _actions,
+                _itemLoss = _itemLoss,
+                _cronActions = _cronActions,
+                _valkActions = _valkActions,
                 _enhancementActions = _enhancementActions,
                 _failstackActions = _failstackActions,
                 _storeActions = _storeActions,

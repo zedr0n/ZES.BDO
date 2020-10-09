@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics.Actions;
+using ZES.Infrastructure.Stochastics;
 using ZES.Interfaces;
 using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics.Policies
 {
-    public class TieredFailstackPolicy : IPolicy<EnhancementState>, IDeterministicPolicy<EnhancementState>
+    public class TieredFailstackPolicy : MarkovPolicy<EnhancementState>
     {
         private readonly string _item;
         private readonly int _targetGrade;
@@ -19,9 +20,6 @@ namespace BDO.Enhancement.Stochastics.Policies
         private StoreFailstack[] _storeActions;
         private RestoreFailstack[] _restoreActions;
         private ValkAction[] _valkActions;
-        private HashSet<EnhancementState> _optimals = new HashSet<EnhancementState>();
-        private Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]> _actions = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>[]>();
-        private Dictionary<EnhancementState, IMarkovAction<EnhancementState>> _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>();
 
         private const int MAX_FAILSTACK = 45;
 
@@ -71,12 +69,25 @@ namespace BDO.Enhancement.Stochastics.Policies
         public int TargetFailstack { get; set; } = -1;
         public bool StopAtOnce { get; set; } = true;
         public ILog Log { get; set; }
-        
-        public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
-        {
-            if (_actions.TryGetValue(state, out var actions))
-                return actions;
 
+        /// <inheritdoc/>
+        protected override MarkovPolicy<EnhancementState> Copy() => new TieredFailstackPolicy(_item, _targetGrade)
+        {
+            StopAtOnce = StopAtOnce,
+            Failstacks = Failstacks,
+            TargetFailstack = TargetFailstack,
+            _itemLoss = _itemLoss,
+            _cronActions = _cronActions,
+            _valkActions = _valkActions,
+            _enhancementActions = _enhancementActions,
+            _failstackActions = _failstackActions,
+            _restoreActions = _restoreActions,
+            _storeActions = _storeActions,
+        };
+
+        /// <inheritdoc/>
+        protected override IMarkovAction<EnhancementState>[] GetAllActions(EnhancementState state)
+        {
             if (TargetFailstack > 0 && state.FailStack >= TargetFailstack)
                 return new IMarkovAction<EnhancementState>[] { null };
             
@@ -132,12 +143,62 @@ namespace BDO.Enhancement.Stochastics.Policies
                 // list.AddRange(_failstackActions.Take(Math.Max(maxFailstack - state.FailStack, 0)));
             }
 
-            var ar = list.ToArray();
-            _actions.Add(state, ar);
-            return ar;
+            return list.ToArray();
         }
+        
+        /// <inheritdoc/>
+        protected override IMarkovAction<EnhancementState> GetAction(EnhancementState state)
+        {
+            
+            if (TargetFailstack > 0 && state.FailStack >= TargetFailstack)
+                return null;
+            
+            if (state.Items[0] - _itemLoss < 0)
+                return null;
+            
+            if (state.Items[_targetGrade] > 0 && StopAtOnce)
+                return null;
 
-        public bool IsModified { get; set; }
+            var toGrade = GetToGrade(state);
+            if (toGrade == 1 && state.Items[0] < 1 + _itemLoss)
+                return null;
+
+            var restoreSlot = ApplyRestoreFailstack(state, toGrade);
+            if (restoreSlot >= 0)
+            {
+                var restoreFailstack = _restoreActions[restoreSlot];
+                if (Log != null)
+                {
+                    Log?.Info($"[RESTORE] +{state.StoredFailstacks[restoreFailstack.Slot]} at state {state.DebuggerDisplay} after succeding an enhancement to +{toGrade - 1} from slot {restoreFailstack.Slot}");
+                    var nextState = restoreFailstack[state].First();
+                    var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
+                    Log?.Info($"[RESTORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
+                }
+
+                return restoreFailstack;
+            }
+
+            var storeSlot = ApplyStoreFailstack(state, toGrade);
+            if (storeSlot >= 0)
+            {
+                var storeFailstack = _storeActions[storeSlot];
+                if (Log != null)
+                {
+                    Log?.Info($"[STORE] +{state.FailStack} at state {state.DebuggerDisplay} after failing an enhancement to +{state.JustFailedGrade} in slot {storeFailstack.Slot}");
+                    var nextState = storeFailstack[state].First();
+                    var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
+                    Log?.Info($"[STORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
+                }
+
+                return storeFailstack;
+            }
+
+            var failstack = ApplyFailstack(state, toGrade);
+            if (failstack > 0)
+                return _failstackActions[failstack - 1];
+
+            return _enhancementActions[toGrade];
+        }
 
         private int GetToGrade(EnhancementState state)
         {
@@ -175,120 +236,7 @@ namespace BDO.Enhancement.Stochastics.Policies
 
         private int ApplyFailstack(EnhancementState state, int toGrade)
         {
-            // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-            // var b = state.FailStack < Failstacks[toGrade - 1];
             return Failstacks[toGrade - 1] - state.FailStack;
-        }
-
-        public EnhancementState[] Modifications => _modifications.Keys.ToArray();
-
-        public IMarkovAction<EnhancementState> this[EnhancementState state]
-        {
-            get
-            {
-                if (_modifications.TryGetValue(state, out var action))
-                    return action;
-
-                if (TargetFailstack > 0 && state.FailStack >= TargetFailstack)
-                    return null;
-                
-                if (state.Items[0] - _itemLoss < 0)
-                    return null;
-                
-                if (state.Items[_targetGrade] > 0 && StopAtOnce)
-                    return null;
-
-                var toGrade = GetToGrade(state);
-                // var toGrade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-                if (toGrade == 1 && state.Items[0] < 1 + _itemLoss)
-                    return null;
-
-                var restoreSlot = ApplyRestoreFailstack(state, toGrade);
-                if (restoreSlot >= 0)
-                {
-                    // var restoreFailstack = new RestoreFailstack(restoreSlot);
-                    var restoreFailstack = _restoreActions[restoreSlot];
-                    if (Log != null)
-                    {
-                        Log?.Info($"[RESTORE] +{state.StoredFailstacks[restoreFailstack.Slot]} at state {state.DebuggerDisplay} after succeding an enhancement to +{toGrade - 1} from slot {restoreFailstack.Slot}");
-                        var nextState = restoreFailstack[state].First();
-                        var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
-                        Log?.Info($"[RESTORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
-                    }
-
-                    return restoreFailstack;
-                }
-
-                var storeSlot = ApplyStoreFailstack(state, toGrade);
-                if (storeSlot >= 0)
-                {
-                    // var storeFailstack = new StoreFailstack(storeSlot);
-                    var storeFailstack = _storeActions[storeSlot];
-                    if (Log != null)
-                    {
-                        Log?.Info($"[STORE] +{state.FailStack} at state {state.DebuggerDisplay} after failing an enhancement to +{state.JustFailedGrade} in slot {storeFailstack.Slot}");
-                        var nextState = storeFailstack[state].First();
-                        var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
-                        Log?.Info($"[STORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
-                    }
-
-                    return storeFailstack;
-                }
-
-                var failstack = ApplyFailstack(state, toGrade);
-                if (failstack > 0)
-                    return _failstackActions[failstack - 1];
-                    // return new FailstackAction(failstack); 
-
-                // return new EnhancementAction(toGrade, _item);
-                return _enhancementActions[toGrade];
-                // return new EnhancementAction(toGrade, _info[toGrade - 1]);
-            }
-            set
-            {
-                _optimals.Add(state);
-                if (value == null)
-                    return;
-                
-                if (!_modifications.TryGetValue(state, out var current))
-                    current = this[state];
-
-                if (current == value)
-                    return;
-                
-                IsModified = true;
-                _modifications[state] = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public bool HasOptimal(EnhancementState state)
-        {
-            if (_optimals.Count == 0)
-                return true;
-
-            return _optimals.Contains(state);
-        }
-
-        /// <inheritdoc/>
-        public object Clone()
-        {
-            return new TieredFailstackPolicy(_item, _targetGrade)
-            {
-                StopAtOnce = StopAtOnce,
-                Failstacks = Failstacks,
-                TargetFailstack = TargetFailstack,
-                _actions = _actions,
-                _itemLoss = _itemLoss,
-                _cronActions = _cronActions,
-                _valkActions = _valkActions,
-                _enhancementActions = _enhancementActions,
-                _failstackActions = _failstackActions,
-                _storeActions = _storeActions,
-                _restoreActions = _restoreActions,
-                _modifications = new Dictionary<EnhancementState, IMarkovAction<EnhancementState>>(_modifications),
-            };
-            
         }
     }
 }

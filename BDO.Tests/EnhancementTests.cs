@@ -553,7 +553,7 @@ namespace BDO.Tests
         {
             var container = CreateContainer();
             var log = container.GetInstance<ILog>();
-            var failstack = 46;
+            var failstack = 60;
             var item = "Grunil";
             var targetGrade = 5;
 
@@ -579,11 +579,11 @@ namespace BDO.Tests
             var policy = new TieredFailstackPolicy(item, targetGrade) {
                 Failstacks = new Dictionary<int, int>
                 {
-                    {0, 9},
-                    {1, 9},
-                    {2, 35},
-                    {3, 40},
-                    {4, 40}
+                    {0, 4},
+                    {1, 14},
+                    {2, 34},
+                    {3, 37},
+                    {4, 45}
                 },
                 TargetFailstack = failstack,
             };
@@ -595,7 +595,7 @@ namespace BDO.Tests
             var optimalCost = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
             log.Info($"Optimal cost : {-optimalCost}");
             if (failstack == 46)
-                Assert.Equal(101608850.03925072, -optimalCost);
+                Assert.Equal(100447877.27680042, -optimalCost);
             
             foreach (var state in optimalPolicy.Modifications)
             {
@@ -734,6 +734,9 @@ namespace BDO.Tests
                 Assert.Equal(-42998725.41710255, value.Mean);
             else if (targetGrade == 2)
                 Assert.Equal(-9981311.112739593, value.Mean);
+            
+            // var graph = new EnhancementGraph(policy, initialState, process.NumberOfIterations);
+            // graph.Serialize(nameof(CanCalculateLoggiaAccessoryCost));
         }
         
         [Fact]
@@ -743,7 +746,7 @@ namespace BDO.Tests
             var log = container.GetInstance<ILog>();
             
             var item = "Loggia"; 
-            var targetGrade = 2;
+            var targetGrade = 3;
 
             var initialState = new EnhancementState(0)
             {
@@ -801,6 +804,9 @@ namespace BDO.Tests
                 if (policy[state] != null && action.ToString() != policy[state].ToString())
                     log.Info($"{state} : {action} >> {policy[state]}");     
             }
+            
+            var graph = new EnhancementGraph(optimalPolicy, initialState, process.NumberOfIterations);
+            graph.Serialize(nameof(CanCalculateLoggiaCost));
         }
         
         [Fact]

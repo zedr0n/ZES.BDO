@@ -60,7 +60,7 @@ namespace BDO.Enhancement.Stochastics
         public override string ToString()
         {
             var str = JustFailedGrade > 0 ? $"[{JustFailedGrade}]" : string.Empty; 
-            return str + $"({string.Join(','.ToString(), Items)}) |{FailStack}| [{StoredFailstacks[0]},{StoredFailstacks[1]}]";
+            return str + $"({string.Join(','.ToString(), Items.Select(i => i > 10000 ? "-" : i.ToString()))}) |{FailStack}| [{StoredFailstacks[0]},{StoredFailstacks[1]}]";
         }
 
         public EnhancementState Clone(Action<EnhancementState> action = null)

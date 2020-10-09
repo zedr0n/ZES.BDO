@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics.Actions;
+using ZES.Infrastructure.Stochastics;
 using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics.Policies
 {
-    public class GrunilPolicy : IDeterministicPolicy<EnhancementState>
+    public class GrunilPolicy : MarkovPolicy<EnhancementState>
     {
         private readonly string _item = "Boss";
         private readonly int _targetFailstack;
@@ -34,43 +35,6 @@ namespace BDO.Enhancement.Stochastics.Policies
             { 43, 3 },
         };
 
-        public bool HasOptimal(EnhancementState state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool IsModified { get; set; } = true;
-
-        public EnhancementState[] Modifications { get; }
-
-        public IMarkovAction<EnhancementState> this[EnhancementState state]
-        {
-            get
-            {
-                if (state.FailStack >= _targetFailstack)
-                    return null;
-
-                if (state.Items[_sellGrade] > 0)
-                    return new SellAction(_sellGrade);
-
-                var toGrade = GetToGrade(state);
-                
-                if (state.Items[toGrade - 1] == 0)
-                    return new AddItemAtGradeAction(toGrade - 1);
-                
-                if (state.FailStack < _minFailstack)
-                    return new FailstackAction(_minFailstack - state.FailStack);
-                
-                return _enhancementActions[toGrade];
-            } 
-            set => throw new System.NotImplementedException();
-        }
-        
         private int GetToGrade(EnhancementState state)
         {
             foreach (var x in FailstackToGrade)
@@ -82,9 +46,33 @@ namespace BDO.Enhancement.Stochastics.Policies
             return FailstackToGrade.Max(x => x.Value) + 1;
         }
 
-        public object Clone()
+        protected override MarkovPolicy<EnhancementState> Copy()
         {
             throw new NotImplementedException();
+        }
+
+        protected override IMarkovAction<EnhancementState>[] GetAllActions(EnhancementState state)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override IMarkovAction<EnhancementState> GetAction(EnhancementState state)
+        {
+            if (state.FailStack >= _targetFailstack)
+                return null;
+
+            if (state.Items[_sellGrade] > 0)
+                return new SellAction(_sellGrade);
+
+            var toGrade = GetToGrade(state);
+            
+            if (state.Items[toGrade - 1] == 0)
+                return new AddItemAtGradeAction(toGrade - 1);
+            
+            if (state.FailStack < _minFailstack)
+                return new FailstackAction(_minFailstack - state.FailStack);
+            
+            return _enhancementActions[toGrade];
         }
     }
 }

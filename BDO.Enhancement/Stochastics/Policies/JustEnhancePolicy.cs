@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Stochastics.Actions;
+using ZES.Infrastructure.Stochastics;
 using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics.Policies
 {
-    public class JustEnhancePolicy : IPolicy<EnhancementState>, IDeterministicPolicy<EnhancementState>
+    public class JustEnhancePolicy : MarkovPolicy<EnhancementState>
     {
         private readonly string _item;
         private readonly int _targetGrade;
@@ -18,15 +19,6 @@ namespace BDO.Enhancement.Stochastics.Policies
 
         public bool StopAtOnce { get; set; } = true;
         public bool TrackNumberOfAttempts { get; set; } = false;
-
-        /// <inheritdoc />
-        public IEnumerable<IMarkovAction<EnhancementState>> GetAllowedActions()
-        {
-            var list = new List<IMarkovAction<EnhancementState>>();
-            for (var i = 1; i <= _targetGrade; ++i)
-                list.Add(new EnhancementAction(i, _item));
-            return list;
-        }
 
         public double this[IMarkovAction<EnhancementState> action, EnhancementState state]
         {
@@ -46,38 +38,30 @@ namespace BDO.Enhancement.Stochastics.Policies
                 return 0.0;
             }
         }
-
-        public bool HasOptimal(EnhancementState state)
+        
+        protected override MarkovPolicy<EnhancementState> Copy() => new JustEnhancePolicy(_item, _targetGrade)
         {
-            throw new System.NotImplementedException();
+            StopAtOnce = StopAtOnce,
+            TrackNumberOfAttempts = TrackNumberOfAttempts, 
+        };
+
+        protected override IMarkovAction<EnhancementState>[] GetAllActions(EnhancementState state)
+        {
+            var list = new List<IMarkovAction<EnhancementState>>();
+            for (var i = 1; i <= _targetGrade; ++i)
+                list.Add(new EnhancementAction(i, _item));
+            return list.ToArray();
         }
 
-        public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
+        /// <inheritdoc/>
+        protected override IMarkovAction<EnhancementState> GetAction(EnhancementState state)
         {
-            throw new System.NotImplementedException();
-        }
-
-        public bool IsModified { get; set; } = true;
-
-        public EnhancementState[] Modifications { get; }
-
-        public IMarkovAction<EnhancementState> this[EnhancementState state]
-        {
-            get
-            {
-                if (state.Items[0] <= 0 || (state.Items[_targetGrade] > 0 && StopAtOnce))
-                    return null;
-                
-                var grade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
-                
-                return new EnhancementAction(grade, _item) { TrackNumberOfAttempts = TrackNumberOfAttempts };
-            }
-            set => throw new System.NotImplementedException();
-        }
-
-        public object Clone()
-        {
-            throw new System.NotImplementedException();
+            if (state.Items[0] <= 0 || (state.Items[_targetGrade] > 0 && StopAtOnce))
+                return null;
+            
+            var grade = state.Items.Take(_targetGrade).ToList().FindLastIndex(i => i > 0) + 1;
+            
+            return new EnhancementAction(grade, _item) { TrackNumberOfAttempts = TrackNumberOfAttempts };
         }
     }
 }

@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using BDO.Enhancement.Stochastics.Actions;
+using ZES.Infrastructure.Stochastics;
 using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics.Policies
 {
-    public class ReblathPolicy : IPolicy<EnhancementState>, IDeterministicPolicy<EnhancementState>
+    public class ReblathPolicy : MarkovPolicy<EnhancementState>
     {
         private readonly string _item = "Reblath";
         private readonly int _targetFailstack;
@@ -14,15 +15,6 @@ namespace BDO.Enhancement.Stochastics.Policies
             _targetFailstack = targetFailstack;
         }
         
-        public IEnumerable<IMarkovAction<EnhancementState>> GetAllowedActions()
-        {
-            return new List<IMarkovAction<EnhancementState>>
-            {
-                new EnhancementAction(5, _item),
-                new CleanseAction(),
-            };
-        }
-
         public double this[IMarkovAction<EnhancementState> action, EnhancementState state]
         {
             get
@@ -37,38 +29,26 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
         }
 
-        public bool HasOptimal(EnhancementState state)
+        protected override MarkovPolicy<EnhancementState> Copy() => new ReblathPolicy(_targetFailstack);
+
+        protected override IMarkovAction<EnhancementState>[] GetAllActions(EnhancementState state)
         {
-            throw new System.NotImplementedException();
-        }
-
-        public IMarkovAction<EnhancementState>[] GetAllowedActions(EnhancementState state)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool IsModified { get; set; } = true;
-
-        public EnhancementState[] Modifications { get; }
-
-        public IMarkovAction<EnhancementState> this[EnhancementState state]
-        {
-            get
+            return new List<IMarkovAction<EnhancementState>>
             {
-                if (state.FailStack >= _targetFailstack)
-                    return null;
-                
-                if (state.Items[5] > 0)
-                    return new CleanseAction();
-                
-                return new EnhancementAction(5, _item);
-            }
-            set => throw new System.NotImplementedException();
+                new EnhancementAction(5, _item),
+                new CleanseAction(),
+            }.ToArray();
         }
 
-        public object Clone()
+        protected override IMarkovAction<EnhancementState> GetAction(EnhancementState state)
         {
-            throw new System.NotImplementedException();
+            if (state.FailStack >= _targetFailstack)
+                return null;
+            
+            if (state.Items[5] > 0)
+                return new CleanseAction();
+            
+            return new EnhancementAction(5, _item);
         }
     }
 }

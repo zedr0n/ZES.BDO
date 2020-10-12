@@ -12,6 +12,7 @@ namespace BDO.Enhancement.Static
         public static double ArmorStonePrice = 210000;
         public static double BlackGemPrice = 740000;
         public static double ConcentratedWeaponStonePrice = 2100000;
+        public static double MarketYield = 0.85;
         
         public static List<EnhancementInfo> EnhancementInfos { get; } = new List<EnhancementInfo>
         {
@@ -301,6 +302,7 @@ namespace BDO.Enhancement.Static
                 SoftCapIncrease = 0,
                 BlackGem = 1,
                 RepairCost = 2000000,
+                NumberOfStacks = 0,
             },
             new EnhancementInfo("Loggia Accessory", 1)
             {
@@ -311,6 +313,7 @@ namespace BDO.Enhancement.Static
                 SoftCapIncrease = 0,
                 BlackGem = 2,
                 RepairCost = 1000000,
+                NumberOfStacks = 0,
             },
             new EnhancementInfo("Loggia Accessory", 2)
             {
@@ -321,6 +324,7 @@ namespace BDO.Enhancement.Static
                 SoftCapIncrease = 0,
                 BlackGem = 3,
                 RepairCost = 1000000,
+                NumberOfStacks = 0,
             },
             new EnhancementInfo("Loggia Accessory", 3)
             {
@@ -331,6 +335,7 @@ namespace BDO.Enhancement.Static
                 SoftCapIncrease = 0,
                 BlackGem = 4,
                 RepairCost = 1000000,
+                NumberOfStacks = 0,
             },
             new EnhancementInfo("Loggia Accessory", 4)
             {
@@ -341,6 +346,7 @@ namespace BDO.Enhancement.Static
                 SoftCapIncrease = 0,
                 BlackGem = 5,
                 RepairCost = 1000000,
+                NumberOfStacks = 0,
             },
             new EnhancementInfo("Grunil", 0)
             {
@@ -363,6 +369,7 @@ namespace BDO.Enhancement.Static
                 NumberOfStacks = 3,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 121000,
+                Price = 36000000,
             },
             new EnhancementInfo("Grunil", 2)
             {
@@ -387,6 +394,7 @@ namespace BDO.Enhancement.Static
                 DropEnhancementGrade = true,
                 ConcentratedWeaponStone = 1,
                 RepairCost = 1000000,
+                Price = 465000000,
             },
             new EnhancementInfo("Grunil", 4)
             {

@@ -10,7 +10,9 @@ namespace BDO.Enhancement.Stochastics.Actions
         {
             _sellGrade = grade;
         }
-        
+
+        public override string ToString() => $"Sell[{_sellGrade}]";
+
         protected override EnhancementState[] GetStates(EnhancementState current)
         {
             return new[]

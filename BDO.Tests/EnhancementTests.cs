@@ -284,7 +284,7 @@ namespace BDO.Tests
             var targetGrade = 3;
             // var quantities = Enumerable.Range(3, 3).Select(i => 10 * i);
             // var quantities = new List<int> { 20, 24, 28, 32, 36, 40 };
-            var quantities = new List<int> { 20 };
+            var quantities = new List<int> { 10 };
             // var quantities = new List<int> { 8, 12, 16, 24, 28, 32 };
             
             var probabilities = new Dictionary<(int, int, int, int, int), double>();
@@ -553,16 +553,17 @@ namespace BDO.Tests
         {
             var container = CreateContainer();
             var log = container.GetInstance<ILog>();
-            var failstack = 60;
             var item = "Grunil";
+            var sellTarget = true;
             var targetGrade = 5;
+            var sellGrade = 4;
 
             var initialState = new EnhancementState(0)
             {
                 Items = new []
                 {
                     0, 
-                    5,
+                    1,
                     0,
                     0,
                     0,
@@ -570,39 +571,89 @@ namespace BDO.Tests
                 },
             };
 
-            var process = new EnhancementProcess(initialState)
+            var failstacks = Enumerable.Range(46, 1).ToList();
+            var rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() };
+            if (sellGrade > 0)
+                rewards.Add(new SellReward(item, sellGrade));
+            Parallel.ForEach(failstacks, failstack =>
             {
-                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() },
-                Log = log,
-                UseReachableStateSpace = false,
-            };
-            var policy = new TieredFailstackPolicy(item, targetGrade) {
-                Failstacks = new Dictionary<int, int>
+                var process = new EnhancementProcess(initialState)
                 {
-                    {0, 4},
-                    {1, 14},
-                    {2, 34},
-                    {3, 37},
-                    {4, 45}
-                },
-                TargetFailstack = failstack,
-            };
+                    Rewards = rewards, 
+                    Log = log,
+                    UseReachableStateSpace = false,
+                    LogProgress = failstacks.Count == 1,
+                    RelativeOptimalTolerance = 1,
+                };
+                
+                var policy = new TieredFailstackPolicy(item, targetGrade)
+                {
+                    // 46 => (9,30,37) [0]
+                    // 50 => (9,29.36) [0]
+                    // 59 => (9,28,35) [8]
+                    Failstacks = new Dictionary<int, int>
+                    {
+                        {0, 4},
+                        {1, 9},
+                        {2, 29},
+                        {3, 36},
+                        {4, 45},
+                    },
+                    MinFailstacks = new Dictionary<int, int>
+                    {
+                        {0, 4},
+                        {1, 9},
+                        {2, 25},
+                        {3, 30},
+                        {4, 50}
+                    },
+                    MaxFailstacks = new Dictionary<int, int>
+                    {
+                        {0, 4},
+                        {1, 30},
+                        {2, 41},
+                        {3, 60},
+                        {4, 100}
+                    },
+                    StopAtOnce = false,
+                    TargetFailstack = failstack,
+                    SellGrade = sellGrade,
+                    MaxFailstackShift = 0,
+                };
 
-            var tolerance = 100.0;
-            var cost = process.GetOptimalValue(policy, tolerance);
-            log.Info($"Base cost : {-cost}");
+                var tolerance = 1000;
+                var cost = process.GetOptimalValue(policy, tolerance);
+                log.Info($"Base cost for failstack={failstack} : {-cost}");
 
-            var optimalCost = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
-            log.Info($"Optimal cost : {-optimalCost}");
-            if (failstack == 46)
-                Assert.Equal(100447877.27680042, -optimalCost);
-            
-            foreach (var state in optimalPolicy.Modifications)
-            {
-                var action = optimalPolicy[state]; 
-                if (policy[state] != null && action.ToString() != policy[state].ToString())
-                    log.Info($"{state} : {action} >> {policy[state]}");     
-            }
+                var optimalCost = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tolerance);
+                log.Info($"Optimal cost for failstack={failstack} : {-optimalCost}");
+
+                var testCost = process.GetOptimalValue(optimalPolicy, tolerance);
+                log.Info($"Test cost = {testCost}");
+                if (failstack == 46)
+                    Assert.Equal(83491365.28205448, -optimalCost);
+
+                if (failstack != failstacks.Last())
+                    return;
+
+                var changes = process.Changes;
+                var ordered = new List<(EnhancementState state, IMarkovAction<EnhancementState> optimalAction, IMarkovAction<EnhancementState> baseAction, double change)>();
+                foreach (var state in optimalPolicy.Modifications)
+                {
+                    var action = optimalPolicy[state];
+                    if (policy[state] == null)
+                        log.Info($"{state} : {action} >> null");
+
+                    if (policy[state] == null || action.ToString() == policy[state].ToString()) 
+                        continue;
+                    
+                    changes.TryGetValue(state, out var change);
+                    if (change > Math.Abs(cost)*0.025)
+                        ordered.Add((state, action, policy[state], change));
+                }
+                foreach (var (state, action, baseAction, change) in ordered.OrderByDescending(x => x.change))
+                    log.Info($"{state} : {action} >> {baseAction} [{change}]");
+            });
         }
         
         [Fact]
@@ -764,7 +815,7 @@ namespace BDO.Tests
 
             var process = new EnhancementProcess(initialState)
             {
-                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward() },
+                Rewards = new List<IActionReward<EnhancementState>> { new EnhancementReward(item, targetGrade), new FailstackReward(), new BookReward() },
                 Log = log,
                 UseReachableStateSpace = false,
             };
@@ -780,14 +831,14 @@ namespace BDO.Tests
             {
                 MaxGradeFailstacks = new Dictionary<int, int>
                 {
-                    {0, 15},
+                    {0, 10},
                     {1, 20},
-                    {2, 35},
-                    {3, 40},
-                }
-                
+                    {2, 30},
+                    {3, 45},
+                },
+                BookFailstack = 40,
             };
-            double tolerance = 100;
+            double tolerance = 10000;
             
             var value = process.GetOptimalValue(policy, tolerance);
             log.Info($"Expected cost for {string.Join(',', policy.Failstacks.Values)} : {-value}");
@@ -804,9 +855,6 @@ namespace BDO.Tests
                 if (policy[state] != null && action.ToString() != policy[state].ToString())
                     log.Info($"{state} : {action} >> {policy[state]}");     
             }
-            
-            var graph = new EnhancementGraph(optimalPolicy, initialState, process.NumberOfIterations);
-            graph.Serialize(nameof(CanCalculateLoggiaCost));
         }
         
         [Fact]
@@ -861,12 +909,12 @@ namespace BDO.Tests
 
                 double tol = 100;
                 
-                var baseValue = process.GetOptimalValue(policy, 100);
+                var baseValue = process.GetOptimalValue(policy, tol);
                 if (quantity == 10 && check)
                     Assert.Equal(869292.7303920856, baseValue);
                 log.Info($"Base value : {baseValue}");
 
-                var value = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, 100);
+                var value = process.GetOptimalValueViaPolicyIteration(policy, out var optimalPolicy, tol);
                 if (quantity == 10 && check)
                     Assert.Equal(3743108.641005154, value);
                 

@@ -5,7 +5,6 @@ using ZES.Interfaces.Stochastic;
 
 namespace BDO.Enhancement.Stochastics
 {
-    [DebuggerDisplay("{DebuggerDisplay}, {NumberOfAttempts}, {FailStack}")]
     public class EnhancementState : IMarkovState, IEquatable<EnhancementState>
     {
         private int[] _items;
@@ -31,14 +30,6 @@ namespace BDO.Enhancement.Stochastics
             JustFailedGrade = -1;
         }
 
-        public string DebuggerDisplay
-        {
-            get
-            {
-                return $"[{Items.Aggregate(string.Empty, (s, i) => s + ( i >= 10000 ? "-" : i.ToString() ) + ",")}]";
-            }
-        }
-
         public int[] StoredFailstacks
         {
             get => _storedFailstacks;
@@ -60,7 +51,7 @@ namespace BDO.Enhancement.Stochastics
         public override string ToString()
         {
             var str = JustFailedGrade > 0 ? $"[{JustFailedGrade}]" : string.Empty; 
-            return str + $"({string.Join(','.ToString(), Items.Select(i => i > 10000 ? "-" : i.ToString()))}) |{FailStack}| [{StoredFailstacks[0]},{StoredFailstacks[1]}]";
+            return str + $"({string.Join(','.ToString(), Items.Select(i => i > 10000 ? "-" : i.ToString()))}) |{FailStack}| [{string.Join(','.ToString(), StoredFailstacks)}]";
         }
 
         public EnhancementState Clone(Action<EnhancementState> action = null)

@@ -14,7 +14,7 @@ namespace BDO.Enhancement.Stochastics.Rewards
         }
         
         // shoes
-        private Dictionary<int, double> _shoesCosts = new Dictionary<int, double>
+        private static Dictionary<int, double> _shoesCosts = new Dictionary<int, double>
         {
             { 1, 223423 },
             { 2, 229567 },
@@ -61,8 +61,17 @@ namespace BDO.Enhancement.Stochastics.Rewards
             { 43, 8253615 },
             { 44, 9422876 },
             { 45, 10779028 },
+            
+            // Grunil
+            { 46, 5860179 },
+            { 47, 9458550 },
+            { 48, 9393789 },
+            { 49, 12376892 },
+            { 50, 7683624 },
+            { 51, 14420141 },
+            { 52, 7929247 },
         };
-        
+
         // armor
         private Dictionary<int, double> _costs = new Dictionary<int, double>
         {
@@ -108,15 +117,20 @@ namespace BDO.Enhancement.Stochastics.Rewards
             { 39, 4902645 },
             { 40, 5424814 },
         };
-        private const double _cost = 200000;
+
+        public static double GetCost(int failstack)
+        {
+            var cost = 0.0;
+            for (var i = 1; i <= failstack; i++)
+                cost += _shoesCosts[i];
+
+            return cost;
+        }
         
         public override double this[EnhancementState @from, EnhancementState to, FailstackAction action]
         {
             get
             {
-                // if (action[from, to] == 0)
-                //    return 0.0;
-
                 var cost = 0.0;
                 for (var failstack = from.FailStack + 1; failstack <= to.FailStack; failstack++)
                 {
@@ -127,7 +141,6 @@ namespace BDO.Enhancement.Stochastics.Rewards
                     cost *= -1;
                 
                 return cost;
-                //return _costs[from.FailStack] - _costs[to.FailStack];
             }
         }
     }

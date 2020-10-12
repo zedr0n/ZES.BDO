@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BDO.Enhancement.Static;
 using BDO.Enhancement.Stochastics.Actions;
+using BDO.Enhancement.Stochastics.Rewards;
 using ZES.Infrastructure.Stochastics;
 using ZES.Interfaces;
 using ZES.Interfaces.Stochastic;
@@ -20,6 +21,8 @@ namespace BDO.Enhancement.Stochastics.Policies
         private StoreFailstack[] _storeActions;
         private RestoreFailstack[] _restoreActions;
         private ValkAction[] _valkActions;
+        private BookFailstack _bookAction;
+        private SellAction _sellAction;
 
         private const int MAX_FAILSTACK = 45;
 
@@ -41,6 +44,7 @@ namespace BDO.Enhancement.Stochastics.Policies
             _storeActions = new StoreFailstack[4];
             _restoreActions = new RestoreFailstack[4];
             _valkActions = new ValkAction[10];
+            _bookAction = new BookFailstack();
             for(var i = 1; i <= 10; ++i)
                 _valkActions[i - 1] = new ValkAction(i);
             for (var slot = 0; slot < 4; ++slot)
@@ -65,8 +69,14 @@ namespace BDO.Enhancement.Stochastics.Policies
         
         public Dictionary<int, int> Failstacks { get; set; }
         public Dictionary<int, int> MaxGradeFailstacks { get; set; } = new Dictionary<int, int>();
-
+       
+        public Dictionary<int, int> MinFailstacks { get; set; } = new Dictionary<int, int>();
+        public Dictionary<int, int> MaxFailstacks { get; set; } = new Dictionary<int, int>();
+        
+        public int SellGrade { get; set; } = -1;
+        public int BookFailstack { get; set; } = -1;
         public int TargetFailstack { get; set; } = -1;
+        public int MaxFailstackShift { get; set; } = 0;
         public bool StopAtOnce { get; set; } = true;
         public ILog Log { get; set; }
 
@@ -76,6 +86,13 @@ namespace BDO.Enhancement.Stochastics.Policies
             StopAtOnce = StopAtOnce,
             Failstacks = Failstacks,
             TargetFailstack = TargetFailstack,
+            BookFailstack = BookFailstack,
+            SellGrade = SellGrade,
+            MaxGradeFailstacks = MaxGradeFailstacks,
+            MinFailstacks = MinFailstacks,
+            MaxFailstacks = MaxFailstacks,
+            MaxFailstackShift = MaxFailstackShift,
+            _sellAction = _sellAction,
             _itemLoss = _itemLoss,
             _cronActions = _cronActions,
             _valkActions = _valkActions,
@@ -83,6 +100,7 @@ namespace BDO.Enhancement.Stochastics.Policies
             _failstackActions = _failstackActions,
             _restoreActions = _restoreActions,
             _storeActions = _storeActions,
+            _bookAction = _bookAction,
         };
 
         /// <inheritdoc/>
@@ -108,14 +126,17 @@ namespace BDO.Enhancement.Stochastics.Policies
             }
 
             if (state.NumberOfValks > 0 && state.FailStack > 0 && state.JustFailedGrade < 0 && state.Items[_targetGrade - 1] > 0)
-            {
-                //for (var i = 1; i <= state.NumberOfValks; i += 3)
                 list.Add(_valkActions[state.NumberOfValks - 1]);
-            }
+            
+            if (BookFailstack > 0 && state.FailStack <= 50 && state.FailStack >= 30)
+                list.Add(_bookAction);
 
-            /*var toGrade = GetToGrade(state);
-            if (state.Items[toGrade - 1] > (toGrade == 1 ? 1 : 0))
-                list.Add(_enhancementActions[toGrade]);*/
+            if (SellGrade > 0 && state.Items[SellGrade] > 0)
+            {
+                if (_sellAction == null)
+                    _sellAction = new SellAction(SellGrade);
+                list.Add(_sellAction);
+            }
 
             var minStoreFailstack = 15;
 
@@ -140,7 +161,6 @@ namespace BDO.Enhancement.Stochastics.Policies
                     list.Add(_failstackActions[i]);
                 for (var i = 28; i < Math.Min(maxFailstack, MAX_FAILSTACK); i++)
                     list.Add(_failstackActions[i]);
-                // list.AddRange(_failstackActions.Take(Math.Max(maxFailstack - state.FailStack, 0)));
             }
 
             return list.ToArray();
@@ -152,6 +172,9 @@ namespace BDO.Enhancement.Stochastics.Policies
             
             if (TargetFailstack > 0 && state.FailStack >= TargetFailstack)
                 return null;
+
+            if (state.Items.Sum() == 0)
+                return null;
             
             if (state.Items[0] - _itemLoss < 0)
                 return null;
@@ -162,6 +185,18 @@ namespace BDO.Enhancement.Stochastics.Policies
             var toGrade = GetToGrade(state);
             if (toGrade == 1 && state.Items[0] < 1 + _itemLoss)
                 return null;
+            if (toGrade < 1)
+                return null;
+
+            if (BookFailstack > 0 && state.FailStack >= BookFailstack && state.FailStack <= 50)
+                return _bookAction;
+
+            if (SellGrade > 0 && state.Items[SellGrade] > 0)
+            {
+                if (_sellAction == null)
+                    _sellAction = new SellAction(SellGrade);
+                return _sellAction;
+            }
 
             var restoreSlot = ApplyRestoreFailstack(state, toGrade);
             if (restoreSlot >= 0)
@@ -169,10 +204,10 @@ namespace BDO.Enhancement.Stochastics.Policies
                 var restoreFailstack = _restoreActions[restoreSlot];
                 if (Log != null)
                 {
-                    Log?.Info($"[RESTORE] +{state.StoredFailstacks[restoreFailstack.Slot]} at state {state.DebuggerDisplay} after succeding an enhancement to +{toGrade - 1} from slot {restoreFailstack.Slot}");
+                    Log?.Info($"[RESTORE] +{state.StoredFailstacks[restoreFailstack.Slot]} at state {state} after succeding an enhancement to +{toGrade - 1} from slot {restoreFailstack.Slot}");
                     var nextState = restoreFailstack[state].First();
                     var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
-                    Log?.Info($"[RESTORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
+                    Log?.Info($"[RESTORE] New state : {nextState} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
                 }
 
                 return restoreFailstack;
@@ -184,10 +219,10 @@ namespace BDO.Enhancement.Stochastics.Policies
                 var storeFailstack = _storeActions[storeSlot];
                 if (Log != null)
                 {
-                    Log?.Info($"[STORE] +{state.FailStack} at state {state.DebuggerDisplay} after failing an enhancement to +{state.JustFailedGrade} in slot {storeFailstack.Slot}");
+                    Log?.Info($"[STORE] +{state.FailStack} at state {state} after failing an enhancement to +{state.JustFailedGrade} in slot {storeFailstack.Slot}");
                     var nextState = storeFailstack[state].First();
                     var nextToGrade = nextState.Items.ToList().FindLastIndex(i => i > 0) + 1;
-                    Log?.Info($"[STORE] New state : {nextState.DebuggerDisplay} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
+                    Log?.Info($"[STORE] New state : {nextState} with failstack +{nextState.FailStack} enhancing to +{nextToGrade}");
                 }
 
                 return storeFailstack;
@@ -215,11 +250,14 @@ namespace BDO.Enhancement.Stochastics.Policies
 
         private int ApplyRestoreFailstack(EnhancementState state, int toGrade)
         {
+            if (MaxFailstacks.Count > 0 || MinFailstacks.Count > 0)
+                return ApplyRestoreFailstackEx(state, toGrade);
+            
             if (state.FailStack != 0)
                 return -1;
 
-            if (toGrade == _targetGrade && state.StoredFailstacks[state.StoredFailstacks.Length - 1] > 0)
-                return state.StoredFailstacks.Length - 1;
+            // if (toGrade == _targetGrade && state.StoredFailstacks[state.StoredFailstacks.Length - 1] > 0)
+            //    return state.StoredFailstacks.Length - 1;
             
             if (toGrade >= 2 && state.StoredFailstacks[_targetGrade - toGrade] > 0)
                 return _targetGrade - toGrade;
@@ -228,9 +266,89 @@ namespace BDO.Enhancement.Stochastics.Policies
 
         private int ApplyStoreFailstack(EnhancementState state, int toGrade)
         {
-            if (state.JustFailedGrade > 1 && state.Items[state.JustFailedGrade - 1] == 0 &&
+            if (MinFailstacks.Count > 0 || MaxFailstacks.Count > 0)
+                return ApplyStoreFailstackEx(state, toGrade);
+            
+            var slot = -1;
+            if (state.JustFailedGrade > 1 && // state.Items[state.JustFailedGrade - 1] == 0 &&
                 state.FailStack > Failstacks[state.JustFailedGrade - 1] && state.FailStack > 1)
-                return _targetGrade - state.JustFailedGrade;
+                slot = _targetGrade - state.JustFailedGrade;
+
+            if (slot > 0 && state.StoredFailstacks[slot] > 0)
+                slot = -1;
+
+            return slot;
+        }
+        
+        private int ApplyRestoreFailstackEx(EnhancementState state, int toGrade)
+        {
+            if (state.FailStack != 0 || toGrade < 2)
+                return -1;
+
+            if (!MaxFailstacks.TryGetValue(toGrade - 1, out var maxFailstack))
+                maxFailstack = Failstacks[toGrade];
+
+            if (!MinFailstacks.TryGetValue(toGrade - 1, out var minFailstack))
+                minFailstack = 1;
+
+            if (toGrade == 3 && state.StoredFailstacks.Count(f => f > 0) > 1 && state.StoredFailstacks.Where(f => f > 0).Min() > maxFailstack)
+                maxFailstack += 12;
+            
+            if (toGrade == 2 && state.StoredFailstacks.Count(f => f > 0) > 2 && state.StoredFailstacks.Where(f => f > 0).Min() > maxFailstack)
+                maxFailstack += 12;
+            
+            var failstackToTake = state.StoredFailstacks.Where(f => f >= minFailstack && f <= maxFailstack)
+                .OrderByDescending(f => f)
+                .FirstOrDefault(); //.Skip(_targetGrade - toGrade).FirstOrDefault();
+
+            var slot = -1;
+            if (failstackToTake > 0)
+            {
+                for (var i = 0; i < state.StoredFailstacks.Length; ++i)
+                {
+                    if (state.StoredFailstacks[i] != failstackToTake)
+                        continue;
+                    
+                    slot = i;
+                    break;
+                }
+            }
+
+            return slot; 
+        }
+
+        private int ApplyStoreFailstackEx(EnhancementState state, int toGrade)
+        {
+            if (state.JustFailedGrade < 0 || state.FailStack <= 10)
+                return -1;
+            
+            var numEmptySlots = state.StoredFailstacks.Count(f => f == 0);
+            if (TargetFailstack > 0 && state.FailStack > TargetFailstack - MaxFailstackShift && state.StoredFailstacks.Max(f => f) > TargetFailstack - MaxFailstackShift)
+                return -1;
+            
+            if (toGrade == 2 && numEmptySlots <= 1)
+                return -1;
+            
+            var emptySlot = -1;
+            foreach (var failstack in state.StoredFailstacks)
+            {
+                emptySlot++;
+                if (failstack == 0)
+                    break;
+            }
+
+            if (emptySlot < 0)
+                return emptySlot;
+
+            if (!MaxFailstacks.TryGetValue(toGrade - 1, out var maxFailstack))
+                maxFailstack = Failstacks[toGrade - 1];
+
+            // if (toGrade == 2 && numEmptySlots < 4)
+            //    maxFailstack /= 2;
+
+            if (state.FailStack > maxFailstack ) // && toGrade < _targetGrade)
+                return emptySlot;
+            
             return -1;
         }
 
